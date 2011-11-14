@@ -78,7 +78,7 @@ public class Xnio3Server {
 				.openListenerAdapter(new AcceptChannelListenerImpl());
 
 		worker.setOption(Options.WORKER_TASK_MAX_THREADS, 400);
-		
+
 		final AcceptingChannel<? extends ConnectedStreamChannel> server = worker
 				.createStreamServer(address, acceptListener,
 						OptionMap.create(Options.REUSE_ADDRESSES, Boolean.TRUE));
@@ -118,7 +118,7 @@ public class Xnio3Server {
 	}
 
 	/**
-	 * {@code ChannelListenerImpl}
+	 * {@code AcceptChannelListenerImpl}
 	 * 
 	 * Created on Nov 10, 2011 at 4:03:10 PM
 	 * 
@@ -202,6 +202,7 @@ public class Xnio3Server {
 		 */
 		public void handleEvent(StreamChannel channel) {
 			try {
+				System.out.println("[" + this.sessionId + "] reading some bytes");
 				int nBytes = channel.read(byteBuffer);
 				if (nBytes < 0) {
 					// means that the connection was closed remotely
