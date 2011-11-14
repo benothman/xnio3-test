@@ -82,11 +82,15 @@ public class JioClient extends Thread {
 	@Override
 	public void run() {
 		try {
+			long total_running_time = System.currentTimeMillis();
 			// Initialize the communication between client and server
 			init();
 			// wait for 2 seconds until all threads are ready
 			sleep(2 * DEFAULT_DELAY);
 			runit();
+			total_running_time = System.currentTimeMillis() - total_running_time;
+			System.out.println("[Thread-" + getId() + "] Total running time: " + total_running_time
+					+ " ms");
 		} catch (Exception exp) {
 			System.err.println("Exception: " + exp.getMessage());
 			exp.printStackTrace();
