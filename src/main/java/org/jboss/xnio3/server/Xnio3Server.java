@@ -65,9 +65,11 @@ public class Xnio3Server {
 			}
 		}
 
-		logger.infov("Starting NIO2 Synchronous Sever on port {0} ...", port);
+		logger.infov("Starting NIO2 Synchronous Server on port {0} ...", port);
 		// Get the Xnio instance
+		Xnio.allowBlocking(false);
 		final Xnio xnio = Xnio.getInstance("nio", Xnio3Server.class.getClassLoader());
+
 		// Create the OptionMap for the worker
 		OptionMap optionMap = OptionMap.create(Options.WORKER_WRITE_THREADS, 100,
 				Options.WORKER_READ_THREADS, 100);
@@ -76,9 +78,9 @@ public class Xnio3Server {
 		final SocketAddress address = new InetSocketAddress(port);
 		final ChannelListener<? super AcceptingChannel<ConnectedStreamChannel>> acceptListener = ChannelListeners
 				.openListenerAdapter(new AcceptChannelListenerImpl());
-
+		// configure the number of worker task max threads 
 		worker.setOption(Options.WORKER_TASK_MAX_THREADS, 400);
-
+		
 		final AcceptingChannel<? extends ConnectedStreamChannel> server = worker
 				.createStreamServer(address, acceptListener,
 						OptionMap.create(Options.REUSE_ADDRESSES, Boolean.TRUE));
@@ -86,8 +88,8 @@ public class Xnio3Server {
 	}
 
 	/**
-	 * 
-	 * @return
+	 * Generate a random and unique session ID.
+	 * @return a random and unique session ID
 	 */
 	public static String generateSessionId() {
 		UUID uuid = UUID.randomUUID();
@@ -99,7 +101,6 @@ public class Xnio3Server {
 	 * @param channel
 	 * @param sessionId
 	 * @throws IOException
-	 * @throws Exception
 	 */
 	protected static void initSession(StreamChannel channel, String sessionId) throws IOException {
 		ByteBuffer buffer = ByteBuffer.allocate(512);
@@ -143,7 +144,7 @@ public class Xnio3Server {
 				logger.error("ERROR: Session initialization failed", e);
 				return;
 			}
-
+			
 			ReadChannelListener readListener = new ReadChannelListener();
 			readListener.sessionId = sessionId;
 			CloseChannelListener closeListener = new CloseChannelListener();
@@ -202,7 +203,6 @@ public class Xnio3Server {
 		 */
 		public void handleEvent(StreamChannel channel) {
 			try {
-				System.out.println("[" + this.sessionId + "] reading some bytes");
 				int nBytes = channel.read(byteBuffer);
 				if (nBytes < 0) {
 					// means that the connection was closed remotely
