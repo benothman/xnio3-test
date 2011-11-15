@@ -78,7 +78,7 @@ public class Xnio3Server {
 		final ChannelListener<? super AcceptingChannel<ConnectedStreamChannel>> acceptListener = ChannelListeners
 				.openListenerAdapter(new AcceptChannelListenerImpl());
 		// configure the number of worker task max threads 
-		worker.setOption(Options.WORKER_TASK_MAX_THREADS, 400);
+		worker.setOption(Options.WORKER_TASK_MAX_THREADS, 300);
 		
 		final AcceptingChannel<? extends ConnectedStreamChannel> server = worker
 				.createStreamServer(address, acceptListener,
