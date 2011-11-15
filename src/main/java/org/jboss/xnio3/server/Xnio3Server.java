@@ -67,7 +67,6 @@ public class Xnio3Server {
 
 		logger.infov("Starting NIO2 Synchronous Server on port {0} ...", port);
 		// Get the Xnio instance
-		Xnio.allowBlocking(false);
 		final Xnio xnio = Xnio.getInstance("nio", Xnio3Server.class.getClassLoader());
 
 		// Create the OptionMap for the worker
@@ -219,6 +218,8 @@ public class Xnio3Server {
 					String response = "[" + this.sessionId + "] Pong from server\n";
 					this.byteBuffer.put(response.getBytes());
 					byteBuffer.flip();
+					// Wait until the channel becomes writable again
+					channel.awaitWritable();
 					channel.write(byteBuffer);
 					this.byteBuffer.clear();
 				}
