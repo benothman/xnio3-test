@@ -70,15 +70,15 @@ public class Xnio3Server {
 		final Xnio xnio = Xnio.getInstance("nio", Xnio3Server.class.getClassLoader());
 
 		// Create the OptionMap for the worker
-		OptionMap optionMap = OptionMap.create(Options.WORKER_WRITE_THREADS, 128,
-				Options.WORKER_READ_THREADS, 128);
+		OptionMap optionMap = OptionMap.create(Options.WORKER_WRITE_THREADS, 100,
+				Options.WORKER_READ_THREADS, 100);
 		// Create the worker
 		final XnioWorker worker = xnio.createWorker(optionMap);
 		final SocketAddress address = new InetSocketAddress(port);
 		final ChannelListener<? super AcceptingChannel<ConnectedStreamChannel>> acceptListener = ChannelListeners
 				.openListenerAdapter(new AcceptChannelListenerImpl());
 		// configure the number of worker task max threads 
-		worker.setOption(Options.WORKER_TASK_MAX_THREADS, 300);
+		worker.setOption(Options.WORKER_TASK_MAX_THREADS, 400);
 		
 		final AcceptingChannel<? extends ConnectedStreamChannel> server = worker
 				.createStreamServer(address, acceptListener,
