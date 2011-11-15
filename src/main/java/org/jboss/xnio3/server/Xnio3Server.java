@@ -70,8 +70,8 @@ public class Xnio3Server {
 		final Xnio xnio = Xnio.getInstance("nio", Xnio3Server.class.getClassLoader());
 
 		// Create the OptionMap for the worker
-		OptionMap optionMap = OptionMap.create(Options.WORKER_WRITE_THREADS, 150,
-				Options.WORKER_READ_THREADS, 150);
+		OptionMap optionMap = OptionMap.create(Options.WORKER_WRITE_THREADS, 128,
+				Options.WORKER_READ_THREADS, 128);
 		// Create the worker
 		final XnioWorker worker = xnio.createWorker(optionMap);
 		final SocketAddress address = new InetSocketAddress(port);
