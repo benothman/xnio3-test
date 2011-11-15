@@ -69,9 +69,12 @@ public class Xnio3Server {
 		// Get the Xnio instance
 		final Xnio xnio = Xnio.getInstance("nio", Xnio3Server.class.getClassLoader());
 
+		int cores = Runtime.getRuntime().availableProcessors();
+		logger.infof("Number of cores detected %s", cores);
+		
 		// Create the OptionMap for the worker
-		OptionMap optionMap = OptionMap.create(Options.WORKER_WRITE_THREADS, 64,
-				Options.WORKER_READ_THREADS, 64);
+		OptionMap optionMap = OptionMap.create(Options.WORKER_WRITE_THREADS, cores,
+				Options.WORKER_READ_THREADS, cores);
 		// Create the worker
 		final XnioWorker worker = xnio.createWorker(optionMap);
 		final SocketAddress address = new InetSocketAddress(port);
@@ -213,7 +216,7 @@ public class Xnio3Server {
 					this.byteBuffer.put(response.getBytes());
 					byteBuffer.flip();
 					// Wait until the channel becomes writable again
-					//channel.awaitWritable();
+					channel.awaitWritable();
 					channel.write(byteBuffer);
 					this.byteBuffer.clear();
 				}
