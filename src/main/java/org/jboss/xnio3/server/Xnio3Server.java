@@ -65,13 +65,13 @@ public class Xnio3Server {
 			}
 		}
 
-		logger.infov("Starting NIO2 Synchronous Server on port {0} ...", port);
+		logger.infov("Starting XNIO3 Server on port {0} ...", port);
 		// Get the Xnio instance
 		final Xnio xnio = Xnio.getInstance("nio", Xnio3Server.class.getClassLoader());
 
 		// Create the OptionMap for the worker
 		OptionMap optionMap = OptionMap.create(Options.WORKER_WRITE_THREADS, 64,
-				Options.WORKER_READ_THREADS, 100);
+				Options.WORKER_READ_THREADS, 64);
 		// Create the worker
 		final XnioWorker worker = xnio.createWorker(optionMap);
 		final SocketAddress address = new InetSocketAddress(port);
@@ -213,7 +213,7 @@ public class Xnio3Server {
 					this.byteBuffer.put(response.getBytes());
 					byteBuffer.flip();
 					// Wait until the channel becomes writable again
-					channel.awaitWritable();
+					//channel.awaitWritable();
 					channel.write(byteBuffer);
 					this.byteBuffer.clear();
 				}
