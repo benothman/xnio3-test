@@ -70,16 +70,16 @@ public class Xnio3Server {
 		final Xnio xnio = Xnio.getInstance("nio", Xnio3Server.class.getClassLoader());
 
 		// Create the OptionMap for the worker
-		OptionMap optionMap = OptionMap.create(Options.WORKER_WRITE_THREADS, 100,
+		OptionMap optionMap = OptionMap.create(Options.WORKER_WRITE_THREADS, 64,
 				Options.WORKER_READ_THREADS, 100);
 		// Create the worker
 		final XnioWorker worker = xnio.createWorker(optionMap);
 		final SocketAddress address = new InetSocketAddress(port);
 		final ChannelListener<? super AcceptingChannel<ConnectedStreamChannel>> acceptListener = ChannelListeners
 				.openListenerAdapter(new AcceptChannelListenerImpl());
-		// configure the number of worker task max threads 
+		// configure the number of worker task max threads
 		worker.setOption(Options.WORKER_TASK_MAX_THREADS, 400);
-		
+
 		final AcceptingChannel<? extends ConnectedStreamChannel> server = worker
 				.createStreamServer(address, acceptListener,
 						OptionMap.create(Options.REUSE_ADDRESSES, Boolean.TRUE));
@@ -88,6 +88,7 @@ public class Xnio3Server {
 
 	/**
 	 * Generate a random and unique session ID.
+	 * 
 	 * @return a random and unique session ID
 	 */
 	public static String generateSessionId() {
@@ -143,7 +144,7 @@ public class Xnio3Server {
 				logger.error("ERROR: Session initialization failed", e);
 				return;
 			}
-			
+
 			ReadChannelListener readListener = new ReadChannelListener();
 			readListener.sessionId = sessionId;
 			CloseChannelListener closeListener = new CloseChannelListener();
@@ -172,14 +173,7 @@ public class Xnio3Server {
 		 * @see org.xnio.ChannelListener#handleEvent(java.nio.channels.Channel)
 		 */
 		public void handleEvent(StreamChannel channel) {
-			try {
-				logger.info("Closing remote connection for session: [" + sessionId + "]");
-				channel.suspendReads();
-				channel.suspendWrites();
-				channel.close();
-			} catch (IOException e) {
-				e.printStackTrace();
-			}
+			logger.info("Closing remote connection for session: [" + sessionId + "]");
 		}
 	}
 
