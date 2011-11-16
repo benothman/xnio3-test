@@ -210,9 +210,10 @@ public class Xnio3Server {
 		 * @see org.xnio.ChannelListener#handleEvent(java.nio.channels.Channel )
 		 */
 		public void handleEvent(StreamChannel channel) {
+			// Peek a byte buffer from the READ_BUFFER_POOL
+			ByteBuffer byteBuffer = null;
 			try {
-				// Peek a byte buffer from the READ_BUFFER_POOL
-				ByteBuffer byteBuffer = READ_BUFFER_POOL.peek();
+				byteBuffer = READ_BUFFER_POOL.peek();
 				int nBytes = channel.read(byteBuffer);
 				if (nBytes < 0) {
 					// means that the connection was closed remotely
@@ -226,8 +227,6 @@ public class Xnio3Server {
 					byteBuffer.get(bytes);
 					byteBuffer.clear();
 					System.out.println("[" + this.sessionId + "] " + new String(bytes).trim());
-					// Restitute the read byte buffer
-					READ_BUFFER_POOL.restitute(byteBuffer);
 					writeResponse(channel);
 
 					/*
@@ -237,13 +236,15 @@ public class Xnio3Server {
 					 * // Wait until the channel becomes writable again
 					 * channel.awaitWritable(); channel.write(byteBuffer);
 					 */
-				} else {
-					READ_BUFFER_POOL.restitute(byteBuffer);
 				}
-
 			} catch (Exception e) {
 				logger.error("Exception: " + e.getMessage(), e);
 				e.printStackTrace();
+			} finally {
+				// Restitute the read byte buffer
+				if (byteBuffer != null) {
+					READ_BUFFER_POOL.restitute(byteBuffer);
+				}
 			}
 		}
 
@@ -257,36 +258,46 @@ public class Xnio3Server {
 			BufferedReader in = new BufferedReader(new InputStreamReader(new FileInputStream("data"
 					+ File.separatorChar + "file.txt")));
 
-			ByteBuffer buffer = WRITE_BUFFER_POOL.peek();
-			String line = null;
-			int off = 0;
-			int remain = 0;
-			while ((line = in.readLine()) != null) {
-				int length = line.length();
+			ByteBuffer buffer = null;
+			try {
+				buffer = WRITE_BUFFER_POOL.peek();
+				String line = null;
+				int off = 0;
+				int remain = 0;
+				while ((line = in.readLine()) != null) {
+					int length = line.length();
 
-				if (buffer.remaining() >= length) {
-					buffer.put(line.getBytes());
-				} else {
-					off = buffer.remaining();
-					remain = length - off;
-					buffer.put(line.getBytes(), 0, off);
+					if (buffer.remaining() >= length) {
+						buffer.put(line.getBytes());
+					} else {
+						off = buffer.remaining();
+						remain = length - off;
+						buffer.put(line.getBytes(), 0, off);
+					}
+					// write data to the channel when the buffer is full
+					if (!buffer.hasRemaining()) {
+						write(channel, buffer);
+						buffer.put(line.getBytes(), off, remain);
+						remain = 0;
+					}
 				}
-				// write data to the channel when the buffer is full
-				if (!buffer.hasRemaining()) {
+
+				// If still some data to write
+				if (buffer.remaining() < buffer.capacity()) {
 					write(channel, buffer);
-					buffer.put(line.getBytes(), off, remain);
-					remain = 0;
+				}
+				// write the CRLF characters
+				buffer.put(CRLF.getBytes());
+				write(channel, buffer);
+
+			} catch (Exception exp) {
+
+			} finally {
+				in.close();
+				if (buffer != null) {
+					WRITE_BUFFER_POOL.restitute(buffer);
 				}
 			}
-			in.close();
-			// If still some data to write
-			if (buffer.remaining() < buffer.capacity()) {
-				write(channel, buffer);
-			}
-			// write the CRLF characters
-			buffer.put(CRLF.getBytes());
-			write(channel, buffer);
-			WRITE_BUFFER_POOL.restitute(buffer);
 		}
 
 		/**
