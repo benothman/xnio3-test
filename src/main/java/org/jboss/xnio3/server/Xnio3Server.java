@@ -247,14 +247,35 @@ public class Xnio3Server {
 		 */
 		void writeResponse(StreamChannel channel) throws Exception {
 
-			BufferedReader in = new BufferedReader(new InputStreamReader(new FileInputStream("data"
-					+ File.separatorChar + "file.txt")));
+			FileInputStream fis = new FileInputStream("data" + File.separatorChar + "file.txt");
+			//BufferedReader in = new BufferedReader(new InputStreamReader(fis));
 
 			ByteBuffer buffer = ByteBuffer.allocate(8 * 1024);
 			try {
+				int nBytes = -1;
+				byte bytes[] = new byte[8 * 1024];
 				String line = null;
 				int off = 0;
 				int remain = 0;
+
+				while ((nBytes = fis.read(bytes)) != -1) {
+					
+					if (buffer.remaining() >= nBytes) {
+						buffer.put(bytes);
+					} else {
+						off = buffer.remaining();
+						remain = nBytes - off;
+						buffer.put(bytes, 0, off);
+					}
+					// write data to the channel when the buffer is full
+					if (!buffer.hasRemaining()) {
+						write(channel, buffer);
+						buffer.put(bytes, off, remain);
+						remain = 0;
+					}
+				}
+
+				/*
 				while ((line = in.readLine()) != null) {
 					int length = line.length();
 
@@ -272,6 +293,7 @@ public class Xnio3Server {
 						remain = 0;
 					}
 				}
+				*/
 
 				// If still some data to write
 				if (buffer.remaining() < buffer.capacity()) {
@@ -284,7 +306,8 @@ public class Xnio3Server {
 				logger.error("Exception: " + exp.getMessage(), exp);
 				exp.printStackTrace();
 			} finally {
-				in.close();
+				//in.close();
+				fis.close();
 			}
 		}
 
