@@ -175,7 +175,7 @@ public class JioClient extends Thread {
 			write("Ping from client " + getId() + "\n");
 			response = read();
 			time = System.currentTimeMillis() - time;
-			System.out.println("[Thread-" + getId() + "] Received from server -> " + response);
+			//System.out.println("[Thread-" + getId() + "] Received from server -> " + response);
 			// update the maximum response time
 			if (time > max_time) {
 				max_time = time;
