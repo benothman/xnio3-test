@@ -53,8 +53,6 @@ import org.xnio.channels.StreamChannel;
 public class Xnio3Server {
 
 	private static final Logger logger = Logger.getLogger(Xnio3Server.class.getName());
-	private static final BufferPool WRITE_BUFFER_POOL = BufferPool.create();
-	private static final BufferPool READ_BUFFER_POOL = BufferPool.create(512);
 	/**
 	 * 
 	 */
@@ -210,10 +208,9 @@ public class Xnio3Server {
 		 * @see org.xnio.ChannelListener#handleEvent(java.nio.channels.Channel )
 		 */
 		public void handleEvent(StreamChannel channel) {
-			// Peek a byte buffer from the READ_BUFFER_POOL
-			ByteBuffer byteBuffer = null;
+
+			ByteBuffer byteBuffer = ByteBuffer.allocate(512);
 			try {
-				byteBuffer = READ_BUFFER_POOL.peek();
 				int nBytes = channel.read(byteBuffer);
 				if (nBytes < 0) {
 					// means that the connection was closed remotely
@@ -240,11 +237,6 @@ public class Xnio3Server {
 			} catch (Exception e) {
 				logger.error("Exception: " + e.getMessage(), e);
 				e.printStackTrace();
-			} finally {
-				// Restitute the read byte buffer
-				if (byteBuffer != null) {
-					READ_BUFFER_POOL.restitute(byteBuffer);
-				}
 			}
 		}
 
@@ -258,9 +250,8 @@ public class Xnio3Server {
 			BufferedReader in = new BufferedReader(new InputStreamReader(new FileInputStream("data"
 					+ File.separatorChar + "file.txt")));
 
-			ByteBuffer buffer = null;
+			ByteBuffer buffer = ByteBuffer.allocate(8 * 1024);
 			try {
-				buffer = WRITE_BUFFER_POOL.peek();
 				String line = null;
 				int off = 0;
 				int remain = 0;
@@ -289,14 +280,11 @@ public class Xnio3Server {
 				// write the CRLF characters
 				buffer.put(CRLF.getBytes());
 				write(channel, buffer);
-
 			} catch (Exception exp) {
-
+				logger.error("Exception: " + exp.getMessage(), exp);
+				exp.printStackTrace();
 			} finally {
 				in.close();
-				if (buffer != null) {
-					WRITE_BUFFER_POOL.restitute(buffer);
-				}
 			}
 		}
 
