@@ -22,6 +22,7 @@
 package org.jboss.xnio3.server;
 
 import java.io.BufferedReader;
+import java.io.File;
 import java.io.FileInputStream;
 import java.io.IOException;
 import java.io.InputStreamReader;
@@ -253,8 +254,8 @@ public class Xnio3Server {
 		 */
 		void writeResponse(StreamChannel channel) throws Exception {
 
-			BufferedReader in = new BufferedReader(new InputStreamReader(new FileInputStream(
-					"file.txt")));
+			BufferedReader in = new BufferedReader(new InputStreamReader(new FileInputStream("data"
+					+ File.separatorChar + "file.txt")));
 
 			ByteBuffer buffer = WRITE_BUFFER_POOL.peek();
 			String line = null;
