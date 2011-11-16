@@ -241,6 +241,7 @@ public class Xnio3Server {
 				}
 
 			} catch (Exception e) {
+				logger.error("Exception: " + e.getMessage(), e);
 				e.printStackTrace();
 			}
 		}
