@@ -22,6 +22,7 @@
 package org.jboss.xnio3.client;
 
 import java.io.BufferedReader;
+import java.io.DataInputStream;
 import java.io.IOException;
 import java.io.InputStreamReader;
 import java.io.OutputStream;
@@ -38,6 +39,8 @@ import java.util.Random;
  * @author <a href="mailto:nbenothm@redhat.com">Nabil Benothman</a>
  */
 public class JioClient extends Thread {
+
+	public static final String CRLF = "\r\n";
 	public static final int MAX = 1000;
 	public static final int N_THREADS = 100;
 	public static final int DEFAULT_DELAY = 1000; // default wait delay 1000ms
@@ -52,6 +55,7 @@ public class JioClient extends Thread {
 	private String sessionId;
 	private OutputStream os;
 	private BufferedReader br;
+	private DataInputStream dis;
 
 	/**
 	 * Create a new instance of {@code JioClient}
@@ -114,7 +118,9 @@ public class JioClient extends Thread {
 		// Open connection with server
 		this.channel = new Socket(this.hostname, this.port);
 		this.os = this.channel.getOutputStream();
-		this.br = new BufferedReader(new InputStreamReader(this.channel.getInputStream()));
+		// this.br = new BufferedReader(new
+		// InputStreamReader(this.channel.getInputStream()));
+		this.dis = new DataInputStream(this.channel.getInputStream());
 	}
 
 	/**
@@ -195,7 +201,16 @@ public class JioClient extends Thread {
 	 * @throws Exception
 	 */
 	public String read() throws Exception {
-		return this.br.readLine();
+		// return this.br.readLine();
+
+		byte bytes[] = new byte[1024];
+		int nBytes = -1;
+		String tmp = null;
+		while ((nBytes = this.dis.read(bytes)) != -1 && (new String(bytes, 0, nBytes).equals(CRLF))) {
+
+		}
+
+		return null;
 	}
 
 	/**
