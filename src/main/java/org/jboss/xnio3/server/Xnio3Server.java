@@ -21,7 +21,10 @@
  */
 package org.jboss.xnio3.server;
 
+import java.io.BufferedReader;
+import java.io.FileInputStream;
 import java.io.IOException;
+import java.io.InputStreamReader;
 import java.net.InetSocketAddress;
 import java.net.SocketAddress;
 import java.nio.ByteBuffer;
@@ -48,8 +51,17 @@ import org.xnio.channels.StreamChannel;
  */
 public class Xnio3Server {
 
-	protected static final int SERVER_PORT = 8080;
 	private static final Logger logger = Logger.getLogger(Xnio3Server.class.getName());
+	private static final BufferPool WRITE_BUFFER_POOL = BufferPool.create();
+	private static final BufferPool READ_BUFFER_POOL = BufferPool.create(512);
+	/**
+	 * 
+	 */
+	public static final String CRLF = "\r\n";
+	/**
+	 * The default server port
+	 */
+	public static final int SERVER_PORT = 8080;
 
 	/**
 	 * @param args
@@ -71,7 +83,7 @@ public class Xnio3Server {
 
 		int cores = Runtime.getRuntime().availableProcessors();
 		logger.infof("Number of cores detected %s", cores);
-		
+
 		// Create the OptionMap for the worker
 		OptionMap optionMap = OptionMap.create(Options.WORKER_WRITE_THREADS, cores,
 				Options.WORKER_READ_THREADS, cores);
@@ -189,7 +201,6 @@ public class Xnio3Server {
 	 */
 	protected static class ReadChannelListener implements ChannelListener<StreamChannel> {
 
-		private ByteBuffer byteBuffer = ByteBuffer.allocate(512);
 		private String sessionId;
 
 		/*
@@ -199,6 +210,8 @@ public class Xnio3Server {
 		 */
 		public void handleEvent(StreamChannel channel) {
 			try {
+				// Peek a byte buffer from the READ_BUFFER_POOL
+				ByteBuffer byteBuffer = READ_BUFFER_POOL.peek();
 				int nBytes = channel.read(byteBuffer);
 				if (nBytes < 0) {
 					// means that the connection was closed remotely
@@ -207,23 +220,85 @@ public class Xnio3Server {
 				}
 
 				if (nBytes > 0) {
-					this.byteBuffer.flip();
-					byte bytes[] = new byte[nBytes];
-					this.byteBuffer.get(bytes);
-					this.byteBuffer.clear();
-					System.out.println("[" + this.sessionId + "] " + new String(bytes).trim());
-					String response = "[" + this.sessionId + "] Pong from server\n";
-					this.byteBuffer.put(response.getBytes());
 					byteBuffer.flip();
-					// Wait until the channel becomes writable again
-					channel.awaitWritable();
-					channel.write(byteBuffer);
-					this.byteBuffer.clear();
+					byte bytes[] = new byte[nBytes];
+					byteBuffer.get(bytes);
+					byteBuffer.clear();
+					System.out.println("[" + this.sessionId + "] " + new String(bytes).trim());
+					// Restitute the read byte buffer
+					READ_BUFFER_POOL.restitute(byteBuffer);
+					writeResponse(channel);
+
+					/*
+					 * String response = "[" + this.sessionId +
+					 * "] Pong from server\n";
+					 * byteBuffer.put(response.getBytes()); byteBuffer.flip();
+					 * // Wait until the channel becomes writable again
+					 * channel.awaitWritable(); channel.write(byteBuffer);
+					 */
+				} else {
+					READ_BUFFER_POOL.restitute(byteBuffer);
 				}
-			} catch (IOException e) {
+
+			} catch (Exception e) {
 				e.printStackTrace();
 			}
 		}
 
+		/**
+		 * 
+		 * @param channel
+		 * @throws Exception
+		 */
+		void writeResponse(StreamChannel channel) throws Exception {
+
+			BufferedReader in = new BufferedReader(new InputStreamReader(new FileInputStream(
+					"file.txt")));
+
+			ByteBuffer buffer = WRITE_BUFFER_POOL.peek();
+			String line = null;
+			int off = 0;
+			int remain = 0;
+			while ((line = in.readLine()) != null) {
+				int length = line.length();
+
+				if (buffer.remaining() >= length) {
+					buffer.put(line.getBytes());
+				} else {
+					off = buffer.remaining();
+					remain = length - off;
+					buffer.put(line.getBytes(), 0, off);
+				}
+				// write data to the channel when the buffer is full
+				if (!buffer.hasRemaining()) {
+					write(channel, buffer);
+					buffer.put(line.getBytes(), off, remain);
+					remain = 0;
+				}
+			}
+			in.close();
+			// If still some data to write
+			if (buffer.remaining() < buffer.capacity()) {
+				write(channel, buffer);
+			}
+			// write the CRLF characters
+			buffer.put(CRLF.getBytes());
+			write(channel, buffer);
+			WRITE_BUFFER_POOL.restitute(buffer);
+		}
+
+		/**
+		 * 
+		 * @param channel
+		 * @param buffer
+		 * @throws IOException
+		 */
+		void write(StreamChannel channel, ByteBuffer byteBuffer) throws IOException {
+			byteBuffer.flip();
+			// Wait until the channel becomes writable again
+			channel.awaitWritable();
+			channel.write(byteBuffer);
+			byteBuffer.clear();
+		}
 	}
 }
