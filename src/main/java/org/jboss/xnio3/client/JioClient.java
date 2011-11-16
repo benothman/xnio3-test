@@ -24,7 +24,6 @@ package org.jboss.xnio3.client;
 import java.io.BufferedReader;
 import java.io.DataInputStream;
 import java.io.IOException;
-import java.io.InputStreamReader;
 import java.io.OutputStream;
 import java.net.InetSocketAddress;
 import java.net.Socket;
@@ -206,11 +205,13 @@ public class JioClient extends Thread {
 		byte bytes[] = new byte[1024];
 		int nBytes = -1;
 		String tmp = null;
-		while ((nBytes = this.dis.read(bytes)) != -1 && (new String(bytes, 0, nBytes).equals(CRLF))) {
-
+		StringBuffer sb = new StringBuffer();
+		
+		while ((nBytes = this.dis.read(bytes)) != -1 && (tmp = new String(bytes, 0, nBytes)).equals(CRLF)) {
+			sb.append(tmp);
 		}
 
-		return null;
+		return sb.toString();
 	}
 
 	/**

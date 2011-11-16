@@ -124,7 +124,7 @@ public class Xnio3Server {
 		byte bytes[] = new byte[nBytes];
 		buffer.get(bytes);
 		System.out.println("[" + sessionId + "] " + new String(bytes).trim());
-		String response = "jSessionId: " + sessionId + "\n";
+		String response = "jSessionId: " + sessionId + CRLF;
 		// write initialization response to client
 		buffer.clear();
 		buffer.put(response.getBytes());
@@ -248,7 +248,8 @@ public class Xnio3Server {
 		void writeResponse(StreamChannel channel) throws Exception {
 
 			FileInputStream fis = new FileInputStream("data" + File.separatorChar + "file.txt");
-			//BufferedReader in = new BufferedReader(new InputStreamReader(fis));
+			// BufferedReader in = new BufferedReader(new
+			// InputStreamReader(fis));
 
 			ByteBuffer buffer = ByteBuffer.allocate(8 * 1024);
 			try {
@@ -259,7 +260,7 @@ public class Xnio3Server {
 				int remain = 0;
 
 				while ((nBytes = fis.read(bytes)) != -1) {
-					
+
 					if (buffer.remaining() >= nBytes) {
 						buffer.put(bytes);
 					} else {
@@ -276,24 +277,17 @@ public class Xnio3Server {
 				}
 
 				/*
-				while ((line = in.readLine()) != null) {
-					int length = line.length();
-
-					if (buffer.remaining() >= length) {
-						buffer.put(line.getBytes());
-					} else {
-						off = buffer.remaining();
-						remain = length - off;
-						buffer.put(line.getBytes(), 0, off);
-					}
-					// write data to the channel when the buffer is full
-					if (!buffer.hasRemaining()) {
-						write(channel, buffer);
-						buffer.put(line.getBytes(), off, remain);
-						remain = 0;
-					}
-				}
-				*/
+				 * while ((line = in.readLine()) != null) { int length =
+				 * line.length();
+				 * 
+				 * if (buffer.remaining() >= length) {
+				 * buffer.put(line.getBytes()); } else { off =
+				 * buffer.remaining(); remain = length - off;
+				 * buffer.put(line.getBytes(), 0, off); } // write data to the
+				 * channel when the buffer is full if (!buffer.hasRemaining()) {
+				 * write(channel, buffer); buffer.put(line.getBytes(), off,
+				 * remain); remain = 0; } }
+				 */
 
 				// If still some data to write
 				if (buffer.remaining() < buffer.capacity()) {
@@ -306,7 +300,7 @@ public class Xnio3Server {
 				logger.error("Exception: " + exp.getMessage(), exp);
 				exp.printStackTrace();
 			} finally {
-				//in.close();
+				// in.close();
 				fis.close();
 			}
 		}
