@@ -24,6 +24,7 @@ package org.jboss.xnio3.client;
 import java.io.BufferedReader;
 import java.io.DataInputStream;
 import java.io.IOException;
+import java.io.InputStream;
 import java.io.OutputStream;
 import java.net.InetSocketAddress;
 import java.net.Socket;
@@ -39,9 +40,21 @@ import java.util.Random;
  */
 public class JioClient extends Thread {
 
+	/**
+	 * 
+	 */
 	public static final String CRLF = "\r\n";
+	/**
+	 * 
+	 */
 	public static final int MAX = 1000;
+	/**
+	 * 
+	 */
 	public static final int N_THREADS = 100;
+	/**
+	 * 
+	 */
 	public static final int DEFAULT_DELAY = 1000; // default wait delay 1000ms
 	private long max_time = Long.MIN_VALUE;
 	private long min_time = Long.MAX_VALUE;
@@ -54,7 +67,7 @@ public class JioClient extends Thread {
 	private String sessionId;
 	private OutputStream os;
 	private BufferedReader br;
-	private DataInputStream dis;
+	private InputStream dis;
 
 	/**
 	 * Create a new instance of {@code JioClient}
@@ -119,7 +132,7 @@ public class JioClient extends Thread {
 		this.os = this.channel.getOutputStream();
 		// this.br = new BufferedReader(new
 		// InputStreamReader(this.channel.getInputStream()));
-		this.dis = new DataInputStream(this.channel.getInputStream());
+		this.dis = this.channel.getInputStream();
 	}
 
 	/**
@@ -133,8 +146,9 @@ public class JioClient extends Thread {
 		this.connect(socketAddress);
 		System.out.println("Connection to server established");
 		System.out.println("Initializing communication...");
-		write("POST /session-" + getId() + "\n");
+		write("POST /session-" + getId() + CRLF);
 		String response = read();
+		System.out.println("HEADER: " + response);
 		String tab[] = response.split("\\s+");
 		this.sessionId = tab[1];
 		System.out.println("Communication intialized -> Session ID:" + this.sessionId);
@@ -206,9 +220,13 @@ public class JioClient extends Thread {
 		int nBytes = -1;
 		String tmp = null;
 		StringBuffer sb = new StringBuffer();
-		
-		while ((nBytes = this.dis.read(bytes)) != -1 && (tmp = new String(bytes, 0, nBytes)).equals(CRLF)) {
+
+		while ((nBytes = this.dis.read(bytes)) != -1) {
+			tmp = new String(bytes, 0, nBytes);
 			sb.append(tmp);
+			if (tmp.endsWith(CRLF)) {
+				break;
+			}
 		}
 
 		return sb.toString();
