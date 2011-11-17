@@ -21,15 +21,17 @@
  */
 package org.jboss.xnio3.server;
 
-import java.io.BufferedReader;
 import java.io.File;
-import java.io.FileInputStream;
 import java.io.IOException;
-import java.io.InputStreamReader;
 import java.net.InetSocketAddress;
 import java.net.SocketAddress;
 import java.nio.ByteBuffer;
 import java.nio.channels.Channel;
+import java.nio.channels.SeekableByteChannel;
+import java.nio.file.FileSystems;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.nio.file.StandardOpenOption;
 import java.util.UUID;
 
 import org.jboss.logging.Logger;
@@ -247,61 +249,27 @@ public class Xnio3Server {
 		 */
 		void writeResponse(StreamChannel channel) throws Exception {
 
-			FileInputStream fis = new FileInputStream("data" + File.separatorChar + "file.txt");
-			// BufferedReader in = new BufferedReader(new
-			// InputStreamReader(fis));
-
-			ByteBuffer buffer = ByteBuffer.allocate(8 * 1024);
+			ByteBuffer writeBuffer = ByteBuffer.allocate(8 * 1024);
+			File file = new File("data" + File.separatorChar + "file.txt");
+			Path path = FileSystems.getDefault().getPath(file.getAbsolutePath());
+			SeekableByteChannel sbc = null;
 			try {
-				int nBytes = -1;
-				byte bytes[] = new byte[8 * 1024];
-				String line = null;
-				int off = 0;
-				int remain = 0;
-
-				while ((nBytes = fis.read(bytes)) != -1) {
-
-					if (buffer.remaining() >= nBytes) {
-						buffer.put(bytes);
-					} else {
-						off = buffer.remaining();
-						remain = nBytes - off;
-						buffer.put(bytes, 0, off);
-					}
-					// write data to the channel when the buffer is full
-					if (!buffer.hasRemaining()) {
-						write(channel, buffer);
-						buffer.put(bytes, off, remain);
-						remain = 0;
-					}
+				sbc = Files.newByteChannel(path, StandardOpenOption.READ);
+				// Read from file and write to the asynchronous socket channel
+				while (sbc.read(writeBuffer) > 0) {
+					write(channel, writeBuffer);
 				}
 
-				/*
-				 * while ((line = in.readLine()) != null) { int length =
-				 * line.length();
-				 * 
-				 * if (buffer.remaining() >= length) {
-				 * buffer.put(line.getBytes()); } else { off =
-				 * buffer.remaining(); remain = length - off;
-				 * buffer.put(line.getBytes(), 0, off); } // write data to the
-				 * channel when the buffer is full if (!buffer.hasRemaining()) {
-				 * write(channel, buffer); buffer.put(line.getBytes(), off,
-				 * remain); remain = 0; } }
-				 */
-
-				// If still some data to write
-				if (buffer.remaining() < buffer.capacity()) {
-					write(channel, buffer);
-				}
 				// write the CRLF characters
-				buffer.put(CRLF.getBytes());
-				write(channel, buffer);
+				writeBuffer.put(CRLF.getBytes());
+				write(channel, writeBuffer);
 			} catch (Exception exp) {
 				logger.error("Exception: " + exp.getMessage(), exp);
 				exp.printStackTrace();
 			} finally {
-				// in.close();
-				fis.close();
+				if (sbc != null) {
+					sbc.close();
+				}
 			}
 		}
 

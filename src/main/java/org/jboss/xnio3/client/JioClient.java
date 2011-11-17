@@ -21,8 +21,6 @@
  */
 package org.jboss.xnio3.client;
 
-import java.io.BufferedReader;
-import java.io.DataInputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
@@ -66,7 +64,7 @@ public class JioClient extends Thread {
 	private Socket channel;
 	private String sessionId;
 	private OutputStream os;
-	private BufferedReader br;
+	// private BufferedReader br;
 	private InputStream dis;
 
 	/**
@@ -175,7 +173,8 @@ public class JioClient extends Thread {
 			write("Ping from client " + getId() + "\n");
 			response = read();
 			time = System.currentTimeMillis() - time;
-			//System.out.println("[Thread-" + getId() + "] Received from server -> " + response);
+			// System.out.println("[Thread-" + getId() +
+			// "] Received from server -> " + response);
 			// update the maximum response time
 			if (time > max_time) {
 				max_time = time;
@@ -210,7 +209,7 @@ public class JioClient extends Thread {
 
 	/**
 	 * 
-	 * @return
+	 * @return data received from server
 	 * @throws Exception
 	 */
 	public String read() throws Exception {
@@ -233,7 +232,9 @@ public class JioClient extends Thread {
 	}
 
 	/**
+	 * 
 	 * @param args
+	 * @throws Exception
 	 */
 	public static void main(String[] args) throws Exception {
 
