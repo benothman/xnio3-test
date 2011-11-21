@@ -163,8 +163,10 @@ public class Xnio3Server {
 			readListener.sessionId = sessionId;
 			CloseChannelListener closeListener = new CloseChannelListener();
 			closeListener.sessionId = sessionId;
+			WriteChannelListener writeListener = new WriteChannelListener();
 
 			streamChannel.getReadSetter().set(readListener);
+			streamChannel.getWriteSetter().set(writeListener);
 			streamChannel.getCloseSetter().set(closeListener);
 			streamChannel.resumeReads();
 		}
@@ -307,7 +309,8 @@ public class Xnio3Server {
 				buffers[i].flip();
 			}
 
-			channel.write(buffers);
+			long written = channel.write(buffers);
+			System.out.println("Number of bytes written : " + written);
 		}
 
 		/**
@@ -323,5 +326,27 @@ public class Xnio3Server {
 			channel.write(byteBuffer);
 			byteBuffer.clear();
 		}
+	}
+
+	/**
+	 * {@code WriteChannelListener}
+	 * 
+	 * Created on Nov 21, 2011 at 4:01:22 PM
+	 * 
+	 * @author <a href="mailto:nbenothm@redhat.com">Nabil Benothman</a>
+	 */
+	protected static class WriteChannelListener implements ChannelListener<StreamChannel> {
+
+		/*
+		 * (non-Javadoc)
+		 * 
+		 * @see org.xnio.ChannelListener#handleEvent(java.nio.channels.Channel)
+		 */
+		@Override
+		public void handleEvent(StreamChannel channel) {
+			// TODO Auto-generated method stub
+
+		}
+
 	}
 }
