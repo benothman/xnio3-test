@@ -27,7 +27,6 @@ import java.io.RandomAccessFile;
 import java.net.InetSocketAddress;
 import java.net.SocketAddress;
 import java.nio.ByteBuffer;
-import java.nio.channels.AsynchronousSocketChannel;
 import java.nio.channels.Channel;
 import java.nio.channels.FileChannel;
 import java.util.UUID;
@@ -53,6 +52,7 @@ import org.xnio.channels.StreamChannel;
 public class Xnio3Server {
 
 	private static final Logger logger = Logger.getLogger(Xnio3Server.class.getName());
+	private static final int BUFFER_SIZE = 8 * 1024;
 	/**
 	 * 
 	 */
@@ -248,7 +248,6 @@ public class Xnio3Server {
 		 * @throws Exception
 		 */
 		void writeResponse(StreamChannel channel) throws Exception {
-			final int BUFFER_SIZE = 8 * 1024;
 			File file = new File("data" + File.separatorChar + "file.txt");
 
 			/*
@@ -286,7 +285,7 @@ public class Xnio3Server {
 
 				buffers[buffers.length - 1].put(CRLF.getBytes());
 				// Write the file content to the channel
-				write(channel, buffers);
+				write(channel, buffers, fileLength);
 			} catch (Exception exp) {
 				logger.error("Exception: " + exp.getMessage(), exp);
 				exp.printStackTrace();
@@ -302,14 +301,18 @@ public class Xnio3Server {
 		 * @param buffers
 		 * @throws Exception
 		 */
-		protected void write(final StreamChannel channel, final ByteBuffer[] buffers)
+		protected void write(final StreamChannel channel, final ByteBuffer[] buffers, long total)
 				throws Exception {
 
 			for (int i = 0; i < buffers.length; i++) {
 				buffers[i].flip();
 			}
-
+			WriteChannelListener writeListener = (WriteChannelListener)channel.getWriteSetter();
+			writeListener.reset();
+			writeListener.total = total;
+			writeListener.buffers = buffers;
 			long written = channel.write(buffers);
+			writeListener.addWritten(written);
 			System.out.println("Number of bytes written : " + written);
 		}
 
@@ -337,6 +340,11 @@ public class Xnio3Server {
 	 */
 	protected static class WriteChannelListener implements ChannelListener<StreamChannel> {
 
+		private int offset = 0;
+		private long written = 0;
+		private ByteBuffer buffers[];
+		private long total = 0;
+		
 		/*
 		 * (non-Javadoc)
 		 * 
@@ -344,9 +352,53 @@ public class Xnio3Server {
 		 */
 		@Override
 		public void handleEvent(StreamChannel channel) {
-			// TODO Auto-generated method stub
-
+			if(this.written < this.total) {
+				this.offset = (int)(this.written / BUFFER_SIZE);				
+				try {
+					long nBytes = channel.write(buffers, offset, buffers.length - offset);
+					this.written += nBytes;
+				} catch (IOException e) {
+					e.printStackTrace();
+				}
+				
+			}
 		}
 
+		/**
+		 * Reset the write handler counters
+		 */
+		public void reset() {
+			this.total = 0;
+			this.offset = 0;
+			this.written = 0;
+			this.buffers = null;
+		}
+
+		/**
+		 * 
+		 * @param nBytes
+		 */
+		public void addWritten(long nBytes) {
+			this.written += nBytes;
+		}
+		
+		/**
+		 * Getter for buffers
+		 * 
+		 * @return the buffers
+		 */
+		public ByteBuffer[] getBuffers() {
+			return this.buffers;
+		}
+
+		/**
+		 * Setter for the buffers
+		 * 
+		 * @param buffers
+		 *            the buffers to set
+		 */
+		public void setBuffers(ByteBuffer[] buffers) {
+			this.buffers = buffers;
+		}
 	}
 }
