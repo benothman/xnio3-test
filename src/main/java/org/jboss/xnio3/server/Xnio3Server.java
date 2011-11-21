@@ -23,15 +23,13 @@ package org.jboss.xnio3.server;
 
 import java.io.File;
 import java.io.IOException;
+import java.io.RandomAccessFile;
 import java.net.InetSocketAddress;
 import java.net.SocketAddress;
 import java.nio.ByteBuffer;
+import java.nio.channels.AsynchronousSocketChannel;
 import java.nio.channels.Channel;
-import java.nio.channels.SeekableByteChannel;
-import java.nio.file.FileSystems;
-import java.nio.file.Files;
-import java.nio.file.Path;
-import java.nio.file.StandardOpenOption;
+import java.nio.channels.FileChannel;
 import java.util.UUID;
 
 import org.jboss.logging.Logger;
@@ -248,29 +246,68 @@ public class Xnio3Server {
 		 * @throws Exception
 		 */
 		void writeResponse(StreamChannel channel) throws Exception {
-
-			ByteBuffer writeBuffer = ByteBuffer.allocate(8 * 1024);
+			final int BUFFER_SIZE = 8 * 1024;
 			File file = new File("data" + File.separatorChar + "file.txt");
-			Path path = FileSystems.getDefault().getPath(file.getAbsolutePath());
-			SeekableByteChannel sbc = null;
+
+			/*
+			 * Path path =
+			 * FileSystems.getDefault().getPath(file.getAbsolutePath());
+			 * SeekableByteChannel sbc = null; ByteBuffer writeBuffer =
+			 * ByteBuffer.allocate(BUFFER_SIZE); try { sbc =
+			 * Files.newByteChannel(path, StandardOpenOption.READ); // Read from
+			 * file and write to the asynchronous socket channel while
+			 * (sbc.read(writeBuffer) > 0) { write(channel, writeBuffer); } //
+			 * write the CRLF characters writeBuffer.put(CRLF.getBytes());
+			 * write(channel, writeBuffer); } catch (Exception exp) {
+			 * logger.error("Exception: " + exp.getMessage(), exp);
+			 * exp.printStackTrace(); } finally { if (sbc != null) {
+			 * sbc.close(); } }
+			 */
+
+			RandomAccessFile raf = new RandomAccessFile(file, "r");
+			FileChannel fileChannel = raf.getChannel();
+
 			try {
-				sbc = Files.newByteChannel(path, StandardOpenOption.READ);
-				// Read from file and write to the asynchronous socket channel
-				while (sbc.read(writeBuffer) > 0) {
-					write(channel, writeBuffer);
+				long fileLength = fileChannel.size() + CRLF.getBytes().length;
+				double tmp = (double) fileLength / BUFFER_SIZE;
+				int length = (int) Math.ceil(tmp);
+				ByteBuffer buffers[] = new ByteBuffer[length];
+
+				for (int i = 0; i < buffers.length - 1; i++) {
+					buffers[i] = ByteBuffer.allocate(BUFFER_SIZE);
 				}
 
-				// write the CRLF characters
-				writeBuffer.put(CRLF.getBytes());
-				write(channel, writeBuffer);
+				int temp = (int) (fileLength % BUFFER_SIZE);
+				buffers[buffers.length - 1] = ByteBuffer.allocate(temp);
+				// Read the whole file in one pass
+				fileChannel.read(buffers);
+
+				buffers[buffers.length - 1].put(CRLF.getBytes());
+				// Write the file content to the channel
+				write(channel, buffers);
 			} catch (Exception exp) {
 				logger.error("Exception: " + exp.getMessage(), exp);
 				exp.printStackTrace();
 			} finally {
-				if (sbc != null) {
-					sbc.close();
-				}
+				fileChannel.close();
+				raf.close();
 			}
+		}
+
+		/**
+		 * 
+		 * @param channel
+		 * @param buffers
+		 * @throws Exception
+		 */
+		protected void write(final StreamChannel channel, final ByteBuffer[] buffers)
+				throws Exception {
+
+			for (int i = 0; i < buffers.length; i++) {
+				buffers[i].flip();
+			}
+
+			channel.write(buffers);
 		}
 
 		/**
