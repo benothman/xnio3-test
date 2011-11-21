@@ -307,7 +307,8 @@ public class Xnio3Server {
 			for (int i = 0; i < buffers.length; i++) {
 				buffers[i].flip();
 			}
-			WriteChannelListener writeListener = (WriteChannelListener)channel.getWriteSetter();
+			WriteChannelListener writeListener = (WriteChannelListener) ((ChannelListener.SimpleSetter) channel
+					.getWriteSetter()).get();
 			writeListener.reset();
 			writeListener.total = total;
 			writeListener.buffers = buffers;
@@ -344,7 +345,7 @@ public class Xnio3Server {
 		private long written = 0;
 		private ByteBuffer buffers[];
 		private long total = 0;
-		
+
 		/*
 		 * (non-Javadoc)
 		 * 
@@ -352,15 +353,15 @@ public class Xnio3Server {
 		 */
 		@Override
 		public void handleEvent(StreamChannel channel) {
-			if(this.written < this.total) {
-				this.offset = (int)(this.written / BUFFER_SIZE);				
+			if (this.written < this.total) {
+				this.offset = (int) (this.written / BUFFER_SIZE);
 				try {
 					long nBytes = channel.write(buffers, offset, buffers.length - offset);
 					this.written += nBytes;
 				} catch (IOException e) {
 					e.printStackTrace();
 				}
-				
+
 			}
 		}
 
@@ -381,7 +382,7 @@ public class Xnio3Server {
 		public void addWritten(long nBytes) {
 			this.written += nBytes;
 		}
-		
+
 		/**
 		 * Getter for buffers
 		 * 
