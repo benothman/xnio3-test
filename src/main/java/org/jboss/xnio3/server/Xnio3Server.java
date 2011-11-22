@@ -366,6 +366,8 @@ public class Xnio3Server {
 					} catch (IOException e) {
 						e.printStackTrace();
 					}
+				} else if(this.written == this.total) {
+					reset();
 				}
 			}
 		}
