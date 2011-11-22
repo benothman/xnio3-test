@@ -354,15 +354,18 @@ public class Xnio3Server {
 		 */
 		@Override
 		public void handleEvent(StreamChannel channel) {
-			System.out.println("[WriteChannelListener] #handleEvent -> " + this.written);
-			if (this.written < this.total) {
-				this.offset = (int) (this.written / BUFFER_SIZE);
-				try {
-					long nBytes = channel.write(buffers, offset, buffers.length - offset);
-					this.written += nBytes;
-					System.out.println("[WriteChannelListener] #handleEvent -> new value : " + this.written);
-				} catch (IOException e) {
-					e.printStackTrace();
+			if (this.total > 0) {
+				System.out.println("[WriteChannelListener] #handleEvent -> " + this.written);
+				if (this.written < this.total) {
+					this.offset = (int) (this.written / BUFFER_SIZE);
+					try {
+						long nBytes = channel.write(buffers, offset, buffers.length - offset);
+						this.written += nBytes;
+						System.out.println("[WriteChannelListener] #handleEvent -> new value : "
+								+ this.written);
+					} catch (IOException e) {
+						e.printStackTrace();
+					}
 				}
 			}
 		}
