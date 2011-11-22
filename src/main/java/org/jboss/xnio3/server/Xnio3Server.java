@@ -169,6 +169,7 @@ public class Xnio3Server {
 			streamChannel.getWriteSetter().set(writeListener);
 			streamChannel.getCloseSetter().set(closeListener);
 			streamChannel.resumeReads();
+			streamChannel.resumeWrites();
 		}
 	}
 
