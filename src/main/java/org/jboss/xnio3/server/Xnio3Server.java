@@ -315,7 +315,6 @@ public class Xnio3Server {
 			writeListener.buffers = buffers;
 			long written = channel.write(buffers);
 			writeListener.addWritten(written);
-			System.out.println("Number of bytes written : " + written);
 		}
 
 		/**
@@ -354,19 +353,29 @@ public class Xnio3Server {
 		 */
 		@Override
 		public void handleEvent(StreamChannel channel) {
+
+			/*
+			 * Number of bytes written : 15928 [WriteChannelListener]
+			 * #handleEvent -> new value : 15928 [WriteChannelListener]
+			 * #handleEvent -> 15928
+			 */
+
 			if (this.total > 0) {
-				System.out.println("[WriteChannelListener] #handleEvent -> " + this.written);
+				System.out.println("[WriteChannelListener] Number of bytes written : "
+						+ this.written + " from total " + this.total);
 				if (this.written < this.total) {
 					this.offset = (int) (this.written / BUFFER_SIZE);
 					try {
 						long nBytes = channel.write(buffers, offset, buffers.length - offset);
 						this.written += nBytes;
-						System.out.println("[WriteChannelListener] #handleEvent -> new value : "
+						System.out.println("[WriteChannelListener] -> new value : "
 								+ this.written);
 					} catch (IOException e) {
 						e.printStackTrace();
 					}
-				} else if(this.written == this.total) {
+				}
+
+				if (this.written == this.total) {
 					reset();
 				}
 			}
