@@ -115,10 +115,10 @@ public class ReadChannelListener implements ChannelListener<StreamChannel> {
 		WriteChannelListener writeListener = (WriteChannelListener) ((ChannelListener.SimpleSetter) channel
 				.getWriteSetter()).get();
 		writeListener.reset();
-		writeListener.setTotal(total);
-		writeListener.setBuffers(buffers);
 		long written = channel.write(buffers);
 		writeListener.addWritten(written);
+		writeListener.setTotal(total);
+		writeListener.setBuffers(buffers);
 	}
 
 	/**
