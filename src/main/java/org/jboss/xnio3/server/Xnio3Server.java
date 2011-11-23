@@ -21,14 +21,11 @@
  */
 package org.jboss.xnio3.server;
 
-import java.io.File;
 import java.io.IOException;
-import java.io.RandomAccessFile;
 import java.net.InetSocketAddress;
 import java.net.SocketAddress;
 import java.nio.ByteBuffer;
 import java.nio.channels.Channel;
-import java.nio.channels.FileChannel;
 import java.util.UUID;
 
 import org.jboss.logging.Logger;
@@ -52,22 +49,13 @@ import org.xnio.channels.StreamChannel;
 public class Xnio3Server {
 
 	private static final Logger logger = Logger.getLogger(Xnio3Server.class.getName());
-	private static final int BUFFER_SIZE = 8 * 1024;
-	/**
-	 * 
-	 */
-	public static final String CRLF = "\r\n";
-	/**
-	 * The default server port
-	 */
-	public static final int SERVER_PORT = 8080;
 
 	/**
 	 * @param args
 	 * @throws Exception
 	 */
 	public static void main(String[] args) throws Exception {
-		int port = SERVER_PORT;
+		int port = XnioUtils.SERVER_PORT;
 		if (args.length > 0) {
 			try {
 				port = Integer.valueOf(args[0]);
@@ -124,7 +112,7 @@ public class Xnio3Server {
 		byte bytes[] = new byte[nBytes];
 		buffer.get(bytes);
 		System.out.println("[" + sessionId + "] " + new String(bytes).trim());
-		String response = "jSessionId: " + sessionId + CRLF;
+		String response = "jSessionId: " + sessionId + XnioUtils.CRLF;
 		// write initialization response to client
 		buffer.clear();
 		buffer.put(response.getBytes());
@@ -160,10 +148,11 @@ public class Xnio3Server {
 			}
 
 			ReadChannelListener readListener = new ReadChannelListener();
-			readListener.sessionId = sessionId;
+			readListener.setSessionId(sessionId);
 			CloseChannelListener closeListener = new CloseChannelListener();
 			closeListener.sessionId = sessionId;
 			WriteChannelListener writeListener = new WriteChannelListener();
+			writeListener.setSessionId(sessionId);
 
 			streamChannel.getReadSetter().set(readListener);
 			streamChannel.getWriteSetter().set(writeListener);
@@ -194,228 +183,4 @@ public class Xnio3Server {
 		}
 	}
 
-	/**
-	 * {@code ReadChannelListener}
-	 * 
-	 * Created on Nov 11, 2011 at 1:58:45 PM
-	 * 
-	 * @author <a href="mailto:nbenothm@redhat.com">Nabil Benothman</a>
-	 */
-	protected static class ReadChannelListener implements ChannelListener<StreamChannel> {
-
-		private String sessionId;
-
-		/*
-		 * (non-Javadoc)
-		 * 
-		 * @see org.xnio.ChannelListener#handleEvent(java.nio.channels.Channel )
-		 */
-		public void handleEvent(StreamChannel channel) {
-
-			ByteBuffer byteBuffer = ByteBuffer.allocate(512);
-			try {
-				int nBytes = channel.read(byteBuffer);
-				if (nBytes < 0) {
-					// means that the connection was closed remotely
-					channel.close();
-					return;
-				}
-
-				if (nBytes > 0) {
-					byteBuffer.flip();
-					byte bytes[] = new byte[nBytes];
-					byteBuffer.get(bytes);
-					byteBuffer.clear();
-					System.out.println("[" + this.sessionId + "] " + new String(bytes).trim());
-					writeResponse(channel);
-
-					/*
-					 * String response = "[" + this.sessionId +
-					 * "] Pong from server\n";
-					 * byteBuffer.put(response.getBytes()); byteBuffer.flip();
-					 * // Wait until the channel becomes writable again
-					 * channel.awaitWritable(); channel.write(byteBuffer);
-					 */
-				}
-			} catch (Exception e) {
-				logger.error("Exception: " + e.getMessage(), e);
-				e.printStackTrace();
-			}
-		}
-
-		/**
-		 * 
-		 * @param channel
-		 * @throws Exception
-		 */
-		void writeResponse(StreamChannel channel) throws Exception {
-			File file = new File("data" + File.separatorChar + "file.txt");
-
-			/*
-			 * Path path =
-			 * FileSystems.getDefault().getPath(file.getAbsolutePath());
-			 * SeekableByteChannel sbc = null; ByteBuffer writeBuffer =
-			 * ByteBuffer.allocate(BUFFER_SIZE); try { sbc =
-			 * Files.newByteChannel(path, StandardOpenOption.READ); // Read from
-			 * file and write to the asynchronous socket channel while
-			 * (sbc.read(writeBuffer) > 0) { write(channel, writeBuffer); } //
-			 * write the CRLF characters writeBuffer.put(CRLF.getBytes());
-			 * write(channel, writeBuffer); } catch (Exception exp) {
-			 * logger.error("Exception: " + exp.getMessage(), exp);
-			 * exp.printStackTrace(); } finally { if (sbc != null) {
-			 * sbc.close(); } }
-			 */
-
-			RandomAccessFile raf = new RandomAccessFile(file, "r");
-			FileChannel fileChannel = raf.getChannel();
-
-			try {
-				long fileLength = fileChannel.size() + CRLF.getBytes().length;
-				double tmp = (double) fileLength / BUFFER_SIZE;
-				int length = (int) Math.ceil(tmp);
-				ByteBuffer buffers[] = new ByteBuffer[length];
-
-				for (int i = 0; i < buffers.length - 1; i++) {
-					buffers[i] = ByteBuffer.allocate(BUFFER_SIZE);
-				}
-
-				int temp = (int) (fileLength % BUFFER_SIZE);
-				buffers[buffers.length - 1] = ByteBuffer.allocate(temp);
-				// Read the whole file in one pass
-				fileChannel.read(buffers);
-
-				buffers[buffers.length - 1].put(CRLF.getBytes());
-				// Write the file content to the channel
-				write(channel, buffers, fileLength);
-			} catch (Exception exp) {
-				logger.error("Exception: " + exp.getMessage(), exp);
-				exp.printStackTrace();
-			} finally {
-				fileChannel.close();
-				raf.close();
-			}
-		}
-
-		/**
-		 * 
-		 * @param channel
-		 * @param buffers
-		 * @throws Exception
-		 */
-		protected void write(final StreamChannel channel, final ByteBuffer[] buffers, long total)
-				throws Exception {
-
-			for (int i = 0; i < buffers.length; i++) {
-				buffers[i].flip();
-			}
-			WriteChannelListener writeListener = (WriteChannelListener) ((ChannelListener.SimpleSetter) channel
-					.getWriteSetter()).get();
-			writeListener.reset();
-			writeListener.total = total;
-			writeListener.buffers = buffers;
-			long written = channel.write(buffers);
-			writeListener.addWritten(written);
-		}
-
-		/**
-		 * 
-		 * @param channel
-		 * @param buffer
-		 * @throws IOException
-		 */
-		void write(StreamChannel channel, ByteBuffer byteBuffer) throws IOException {
-			byteBuffer.flip();
-			// Wait until the channel becomes writable again
-			channel.awaitWritable();
-			channel.write(byteBuffer);
-			byteBuffer.clear();
-		}
-	}
-
-	/**
-	 * {@code WriteChannelListener}
-	 * 
-	 * Created on Nov 21, 2011 at 4:01:22 PM
-	 * 
-	 * @author <a href="mailto:nbenothm@redhat.com">Nabil Benothman</a>
-	 */
-	protected static class WriteChannelListener implements ChannelListener<StreamChannel> {
-
-		private int offset = 0;
-		private long written = 0;
-		private ByteBuffer buffers[];
-		private long total = 0;
-
-		/*
-		 * (non-Javadoc)
-		 * 
-		 * @see org.xnio.ChannelListener#handleEvent(java.nio.channels.Channel)
-		 */
-		@Override
-		public void handleEvent(StreamChannel channel) {
-
-			/*
-			 * Number of bytes written : 15928 [WriteChannelListener]
-			 * #handleEvent -> new value : 15928 [WriteChannelListener]
-			 * #handleEvent -> 15928
-			 */
-
-			if (this.total > 0) {
-				System.out.println("[WriteChannelListener] Number of bytes written : "
-						+ this.written + " from total " + this.total);
-				if (this.written < this.total) {
-					this.offset = (int) (this.written / BUFFER_SIZE);
-					try {
-						long nBytes = channel.write(buffers, offset, buffers.length - offset);
-						this.written += nBytes;
-						System.out.println("[WriteChannelListener] -> new value : "
-								+ this.written);
-					} catch (IOException e) {
-						e.printStackTrace();
-					}
-				}
-
-				if (this.written == this.total) {
-					reset();
-				}
-			}
-		}
-
-		/**
-		 * Reset the write handler counters
-		 */
-		public void reset() {
-			this.total = 0;
-			this.offset = 0;
-			this.written = 0;
-			this.buffers = null;
-		}
-
-		/**
-		 * 
-		 * @param nBytes
-		 */
-		public void addWritten(long nBytes) {
-			this.written += nBytes;
-		}
-
-		/**
-		 * Getter for buffers
-		 * 
-		 * @return the buffers
-		 */
-		public ByteBuffer[] getBuffers() {
-			return this.buffers;
-		}
-
-		/**
-		 * Setter for the buffers
-		 * 
-		 * @param buffers
-		 *            the buffers to set
-		 */
-		public void setBuffers(ByteBuffer[] buffers) {
-			this.buffers = buffers;
-		}
-	}
 }
