@@ -58,14 +58,14 @@ public class WriteChannelListener implements ChannelListener<StreamChannel> {
 	public void handleEvent(StreamChannel channel) {
 
 		if (this.total > 0) {
-			System.out.println("[WriteChannelListener] Number of bytes written : " + this.written
-					+ " from total " + this.total);
+			// System.out.println("[WriteChannelListener] Number of bytes written : " + this.written
+			//		+ " from total " + this.total);
 			if (this.written < this.total) {
 				this.offset = (int) (this.written / XnioUtils.WRITE_BUFFER_SIZE);
 				try {
 					long nBytes = channel.write(buffers, offset, buffers.length - offset);
 					this.written += nBytes;
-					System.out.println("[WriteChannelListener] -> new value : " + this.written);
+					// System.out.println("[WriteChannelListener] -> new value : " + this.written);
 				} catch (IOException e) {
 					e.printStackTrace();
 				}

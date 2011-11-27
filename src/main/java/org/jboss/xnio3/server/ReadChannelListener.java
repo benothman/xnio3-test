@@ -72,7 +72,8 @@ public class ReadChannelListener implements ChannelListener<StreamChannel> {
 				byte bytes[] = new byte[nBytes];
 				readBuffer.get(bytes);
 				readBuffer.clear();
-				System.out.println("[" + this.sessionId + "] " + new String(bytes).trim());
+				// System.out.println("[" + this.sessionId + "] " + new
+				// String(bytes).trim());
 				writeResponse(channel);
 			}
 		} catch (Exception e) {

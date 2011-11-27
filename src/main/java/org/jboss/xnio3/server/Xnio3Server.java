@@ -140,10 +140,8 @@ public class Xnio3Server {
 			String sessionId = generateSessionId();
 			try {
 				initSession(streamChannel, sessionId);
-				logger.info("Session intialization finish successfully");
 			} catch (IOException e) {
 				e.printStackTrace();
-				logger.error("ERROR: Session initialization failed", e);
 				return;
 			}
 
