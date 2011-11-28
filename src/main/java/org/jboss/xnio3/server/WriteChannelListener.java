@@ -70,6 +70,7 @@ public class WriteChannelListener implements ChannelListener<StreamChannel> {
 
 			if (this.written == this.total) {
 				reset();
+				channel.suspendWrites();
 			}
 		}
 	}
