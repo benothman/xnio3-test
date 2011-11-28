@@ -144,23 +144,22 @@ public class Xnio3Server {
 				// Fix the size of the send buffer to 8KB
 				streamChannel.setOption(Options.SEND_BUFFER, 8 * 1024);
 				initSession(streamChannel, sessionId);
+				ReadChannelListener readListener = new ReadChannelListener();
+				readListener.setSessionId(sessionId);
+				CloseChannelListener closeListener = new CloseChannelListener();
+				closeListener.sessionId = sessionId;
+				WriteChannelListener writeListener = new WriteChannelListener();
+				writeListener.setSessionId(sessionId);
+
+				streamChannel.getReadSetter().set(readListener);
+				streamChannel.getWriteSetter().set(writeListener);
+				streamChannel.getCloseSetter().set(closeListener);
+				streamChannel.awaitReadable();
+				streamChannel.awaitWritable();
 			} catch (IOException e) {
 				e.printStackTrace();
 				return;
 			}
-
-			ReadChannelListener readListener = new ReadChannelListener();
-			readListener.setSessionId(sessionId);
-			CloseChannelListener closeListener = new CloseChannelListener();
-			closeListener.sessionId = sessionId;
-			WriteChannelListener writeListener = new WriteChannelListener();
-			writeListener.setSessionId(sessionId);
-
-			streamChannel.getReadSetter().set(readListener);
-			streamChannel.getWriteSetter().set(writeListener);
-			streamChannel.getCloseSetter().set(closeListener);
-			streamChannel.resumeReads();
-			streamChannel.resumeWrites();
 		}
 	}
 
