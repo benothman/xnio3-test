@@ -40,146 +40,147 @@ import org.xnio.channels.StreamChannel;
  */
 public class ReadChannelListener implements ChannelListener<StreamChannel> {
 
-    private static final Logger logger = Logger.getLogger(ChannelListener.class.getName());
-    private String sessionId;
-    private ByteBuffer readBuffer;
-    private ByteBuffer writeBuffers[];
-    private long fileLength;
+	private static final Logger logger = Logger.getLogger(ChannelListener.class.getName());
+	private String sessionId;
+	private ByteBuffer readBuffer;
+	private ByteBuffer writeBuffers[];
+	private long fileLength;
 
-    /**
-     * Create a new instance of {@code ReadChannelListener}
-     */
-    public ReadChannelListener() {
-        this.readBuffer = ByteBuffer.allocate(512);
-    }
+	/**
+	 * Create a new instance of {@code ReadChannelListener}
+	 */
+	public ReadChannelListener() {
+		this.readBuffer = ByteBuffer.allocate(512);
+	}
 
-    /*
-     * (non-Javadoc)
-     * 
-     * @see org.xnio.ChannelListener#handleEvent(java.nio.channels.Channel )
-     */
-    public void handleEvent(StreamChannel channel) {
-        try {
-            int nBytes = channel.read(readBuffer);
-            if (nBytes < 0) {
-                // means that the connection was closed remotely
-                channel.close();
-                return;
-            }
+	/*
+	 * (non-Javadoc)
+	 * 
+	 * @see org.xnio.ChannelListener#handleEvent(java.nio.channels.Channel )
+	 */
+	public void handleEvent(StreamChannel channel) {
+		try {
+			int nBytes = channel.read(readBuffer);
+			if (nBytes < 0) {
+				// means that the connection was closed remotely
+				channel.close();
+				return;
+			}
 
-            if (nBytes > 0) {
-                readBuffer.flip();
-                byte bytes[] = new byte[nBytes];
-                readBuffer.get(bytes);
-                readBuffer.clear();
-                writeResponse(channel);
-            }
-        } catch (Exception e) {
-            logger.error("Exception: " + e.getMessage(), e);
-            e.printStackTrace();
-        }
-    }
+			if (nBytes > 0) {
+				readBuffer.flip();
+				byte bytes[] = new byte[nBytes];
+				readBuffer.get(bytes);
+				readBuffer.clear();
+				writeResponse(channel);
+			}
+		} catch (Exception e) {
+			logger.error("Exception: " + e.getMessage(), e);
+			e.printStackTrace();
+		}
+	}
 
-    /**
-     * 
-     * @param channel
-     * @throws Exception
-     */
-    void writeResponse(StreamChannel channel) throws Exception {
-        try {
-            if (this.writeBuffers == null) {
-                initWriteBuffers();
-            }
+	/**
+	 * 
+	 * @param channel
+	 * @throws Exception
+	 */
+	void writeResponse(StreamChannel channel) throws Exception {
+		try {
+			if (this.writeBuffers == null) {
+				initWriteBuffers();
+			}
 
-            // Write the file content to the channel
-            write(channel, writeBuffers, fileLength);
-        } catch (Exception exp) {
-            logger.error("Exception: " + exp.getMessage(), exp);
-            exp.printStackTrace();
-        }
-    }
+			// Write the file content to the channel
+			write(channel, writeBuffers, fileLength);
+		} catch (Exception exp) {
+			logger.error("Exception: " + exp.getMessage(), exp);
+			exp.printStackTrace();
+		}
+	}
 
-    /**
-     * 
-     * @param channel
-     * @param buffers
-     * @throws Exception
-     */
-    protected void write(final StreamChannel channel, final ByteBuffer[] buffers, long total)
-            throws Exception {
+	/**
+	 * 
+	 * @param channel
+	 * @param buffers
+	 * @throws Exception
+	 */
+	protected void write(final StreamChannel channel, final ByteBuffer[] buffers, long total)
+			throws Exception {
 
-        // Flip all buffers
-        XnioUtils.flipAll(buffers);
+		// Flip all buffers
+		XnioUtils.flipAll(buffers);
 
-        WriteChannelListener writeListener = (WriteChannelListener) ((ChannelListener.SimpleSetter) channel.getWriteSetter()).get();
-        writeListener.reset();
-        long written = channel.write(buffers);
-        writeListener.addWritten(written);
-        writeListener.setTotal(total);
-        writeListener.setBuffers(buffers);
-    }
+		WriteChannelListener writeListener = (WriteChannelListener) ((ChannelListener.SimpleSetter) channel
+				.getWriteSetter()).get();
+		writeListener.reset();
+		long written = channel.write(buffers);
+		writeListener.addWritten(written);
+		writeListener.setBuffers(buffers);
+		writeListener.setTotal(total);
+	}
 
-    /**
-     * 
-     * @param channel
-     * @param buffer
-     * @throws IOException
-     */
-    void write(StreamChannel channel, ByteBuffer byteBuffer) throws IOException {
-        byteBuffer.flip();
-        // Wait until the channel becomes writable again
-        channel.awaitWritable();
-        channel.write(byteBuffer);
-        byteBuffer.clear();
-    }
+	/**
+	 * 
+	 * @param channel
+	 * @param buffer
+	 * @throws IOException
+	 */
+	void write(StreamChannel channel, ByteBuffer byteBuffer) throws IOException {
+		byteBuffer.flip();
+		// Wait until the channel becomes writable again
+		channel.awaitWritable();
+		channel.write(byteBuffer);
+		byteBuffer.clear();
+	}
 
-    /**
-     * Read the file from HD and initialize the write byte buffers array.
-     * 
-     * @throws IOException
-     */
-    private void initWriteBuffers() throws IOException {
+	/**
+	 * Read the file from HD and initialize the write byte buffers array.
+	 * 
+	 * @throws IOException
+	 */
+	private void initWriteBuffers() throws IOException {
 
-        File file = new File("data" + File.separatorChar + "file.txt");
-        RandomAccessFile raf = new RandomAccessFile(file, "r");
-        FileChannel fileChannel = raf.getChannel();
+		File file = new File("data" + File.separatorChar + "file.txt");
+		RandomAccessFile raf = new RandomAccessFile(file, "r");
+		FileChannel fileChannel = raf.getChannel();
 
-        fileLength = fileChannel.size() + XnioUtils.CRLF.getBytes().length;
-        double tmp = (double) fileLength / XnioUtils.WRITE_BUFFER_SIZE;
-        int length = (int) Math.ceil(tmp);
-        writeBuffers = new ByteBuffer[length];
+		fileLength = fileChannel.size() + XnioUtils.CRLF.getBytes().length;
+		double tmp = (double) fileLength / XnioUtils.WRITE_BUFFER_SIZE;
+		int length = (int) Math.ceil(tmp);
+		writeBuffers = new ByteBuffer[length];
 
-        for (int i = 0; i < writeBuffers.length - 1; i++) {
-            writeBuffers[i] = ByteBuffer.allocate(XnioUtils.WRITE_BUFFER_SIZE);
-        }
+		for (int i = 0; i < writeBuffers.length - 1; i++) {
+			writeBuffers[i] = ByteBuffer.allocate(XnioUtils.WRITE_BUFFER_SIZE);
+		}
 
-        int temp = (int) (fileLength % XnioUtils.WRITE_BUFFER_SIZE);
-        writeBuffers[writeBuffers.length - 1] = ByteBuffer.allocate(temp);
-        // Read the whole file in one pass
-        fileChannel.read(writeBuffers);
-        // Close the file channel
-        raf.close();
-        // Put the <i>CRLF</i> chars at the end of the last byte buffer to mark
-        // the end of data
-        writeBuffers[writeBuffers.length - 1].put(XnioUtils.CRLF.getBytes());
-    }
+		int temp = (int) (fileLength % XnioUtils.WRITE_BUFFER_SIZE);
+		writeBuffers[writeBuffers.length - 1] = ByteBuffer.allocate(temp);
+		// Read the whole file in one pass
+		fileChannel.read(writeBuffers);
+		// Close the file channel
+		raf.close();
+		// Put the <i>CRLF</i> chars at the end of the last byte buffer to mark
+		// the end of data
+		writeBuffers[writeBuffers.length - 1].put(XnioUtils.CRLF.getBytes());
+	}
 
-    /**
-     * Getter for sessionId
-     * 
-     * @return the sessionId
-     */
-    public String getSessionId() {
-        return this.sessionId;
-    }
+	/**
+	 * Getter for sessionId
+	 * 
+	 * @return the sessionId
+	 */
+	public String getSessionId() {
+		return this.sessionId;
+	}
 
-    /**
-     * Setter for the sessionId
-     * 
-     * @param sessionId
-     *            the sessionId to set
-     */
-    public void setSessionId(String sessionId) {
-        this.sessionId = sessionId;
-    }
+	/**
+	 * Setter for the sessionId
+	 * 
+	 * @param sessionId
+	 *            the sessionId to set
+	 */
+	public void setSessionId(String sessionId) {
+		this.sessionId = sessionId;
+	}
 }
