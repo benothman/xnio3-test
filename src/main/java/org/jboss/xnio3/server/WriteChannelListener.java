@@ -36,136 +36,135 @@ import org.xnio.channels.StreamChannel;
  */
 public class WriteChannelListener implements ChannelListener<StreamChannel> {
 
-	private int offset = 0;
-	private long written = 0;
-	private ByteBuffer buffers[];
-	private long total = 0;
-	private String sessionId;
+    private int offset = 0;
+    private long written = 0;
+    private ByteBuffer buffers[];
+    private long total = 0;
+    private String sessionId;
 
-	/**
-	 * Create a new instance of {@code WriteChannelListener}
-	 */
-	public WriteChannelListener() {
-		super();
-	}
+    /**
+     * Create a new instance of {@code WriteChannelListener}
+     */
+    public WriteChannelListener() {
+        super();
+    }
 
-	/*
-	 * (non-Javadoc)
-	 * 
-	 * @see org.xnio.ChannelListener#handleEvent(java.nio.channels.Channel)
-	 */
-	@Override
-	public void handleEvent(StreamChannel channel) {
+    /*
+     * (non-Javadoc)
+     * 
+     * @see org.xnio.ChannelListener#handleEvent(java.nio.channels.Channel)
+     */
+    @Override
+    public void handleEvent(StreamChannel channel) {
 
-		if (this.total > 0) {
-			// System.out.println("[WriteChannelListener] Number of bytes written : " + this.written
-			//		+ " from total " + this.total);
-			if (this.written < this.total) {
-				this.offset = (int) (this.written / XnioUtils.WRITE_BUFFER_SIZE);
-				try {
-					long nBytes = channel.write(buffers, offset, buffers.length - offset);
-					this.written += nBytes;
-					// System.out.println("[WriteChannelListener] -> new value : " + this.written);
-				} catch (IOException e) {
-					e.printStackTrace();
-				}
-			}
+        if (this.total > 0) {
+            if (this.written < this.total) {
+                this.offset = (int) (this.written / XnioUtils.WRITE_BUFFER_SIZE);
+                try {
+                    // Update the value of written bytes
+                    this.written += channel.write(buffers, offset, buffers.length - offset);
+                } catch (IOException e) {
+                    e.printStackTrace();
+                }
+            }
 
-			if (this.written == this.total) {
-				reset();
-			}
-		}
-	}
+            if (this.written == this.total) {
+                reset();
+            }
+        }
+    }
 
-	/**
-	 * Reset the write handler counters
-	 */
-	public void reset() {
-		this.total = 0;
-		this.offset = 0;
-		this.written = 0;
-		this.buffers = null;
-	}
+    /**
+     * Reset the write handler counters
+     */
+    public void reset() {
+        this.total = 0;
+        this.offset = 0;
+        this.written = 0;
+        this.buffers = null;
+    }
 
-	/**
-	 * 
-	 * @param nBytes
-	 */
-	public void addWritten(long nBytes) {
-		this.written += nBytes;
-	}
+    /**
+     * 
+     * @param nBytes
+     */
+    public void addWritten(long nBytes) {
+        this.written += nBytes;
+    }
 
-	/**
-	 * Getter for buffers
-	 * 
-	 * @return the buffers
-	 */
-	public ByteBuffer[] getBuffers() {
-		return this.buffers;
-	}
+    /**
+     * Getter for buffers
+     * 
+     * @return the buffers
+     */
+    public ByteBuffer[] getBuffers() {
+        return this.buffers;
+    }
 
-	/**
-	 * Setter for the buffers
-	 * 
-	 * @param buffers
-	 *            the buffers to set
-	 */
-	public void setBuffers(ByteBuffer[] buffers) {
-		this.buffers = buffers;
-	}
+    /**
+     * Setter for the buffers
+     * 
+     * @param buffers
+     *            the buffers to set
+     */
+    public void setBuffers(ByteBuffer[] buffers) {
+        this.buffers = buffers;
+    }
 
-	/**
-	 * Getter for offset
-	 *
-	 * @return the offset
-	 */
-	public int getOffset() {
-		return this.offset;
-	}
+    /**
+     * Getter for offset
+     * 
+     * @return the offset
+     */
+    public int getOffset() {
+        return this.offset;
+    }
 
-	/**
-	 * Setter for the offset
-	 *
-	 * @param offset the offset to set
-	 */
-	public void setOffset(int offset) {
-		this.offset = offset;
-	}
+    /**
+     * Setter for the offset
+     * 
+     * @param offset
+     *            the offset to set
+     */
+    public void setOffset(int offset) {
+        this.offset = offset;
+    }
 
-	/**
-	 * Getter for total
-	 *
-	 * @return the total
-	 */
-	public long getTotal() {
-		return this.total;
-	}
+    /**
+     * Getter for total
+     * 
+     * @return the total
+     */
+    public long getTotal() {
+        return this.total;
+    }
 
-	/**
-	 * Setter for the total
-	 *
-	 * @param total the total to set
-	 */
-	public void setTotal(long total) {
-		this.total = total;
-	}
+    /**
+     * Setter for the total
+     * 
+     * @param total
+     *            the total to set
+     */
+    public void setTotal(long total) {
+        this.total = total;
+    }
 
-	/**
-	 * Getter for sessionId
-	 *
-	 * @return the sessionId
-	 */
-	public String getSessionId() {
-		return this.sessionId;
-	}
+    /**
+     * Getter for sessionId
+     * 
+     * @return the sessionId
+     */
+    public String getSessionId() {
+        return this.sessionId;
+    }
 
-	/**
-	 * Setter for the sessionId
-	 *
-	 * @param sessionId the sessionId to set
-	 */
-	public void setSessionId(String sessionId) {
-		this.sessionId = sessionId;
-	}
-
+    /**
+     * Setter for the sessionId
+     * 
+     * @param sessionId
+     *            the sessionId to set
+     */
+    public void setSessionId(String sessionId) {
+        this.sessionId = sessionId;
+    }
 }

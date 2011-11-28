@@ -48,137 +48,134 @@ import org.xnio.channels.StreamChannel;
  */
 public class Xnio3Server {
 
-	private static final Logger logger = Logger.getLogger(Xnio3Server.class.getName());
+    private static final Logger logger = Logger.getLogger(Xnio3Server.class.getName());
 
-	/**
-	 * @param args
-	 * @throws Exception
-	 */
-	public static void main(String[] args) throws Exception {
-		int port = XnioUtils.SERVER_PORT;
-		if (args.length > 0) {
-			try {
-				port = Integer.valueOf(args[0]);
-			} catch (NumberFormatException e) {
-				logger.error(e.getMessage(), e);
-			}
-		}
+    /**
+     * @param args
+     * @throws Exception
+     */
+    public static void main(String[] args) throws Exception {
+        int port = XnioUtils.SERVER_PORT;
+        if (args.length > 0) {
+            try {
+                port = Integer.valueOf(args[0]);
+            } catch (NumberFormatException e) {
+                logger.error(e.getMessage(), e);
+            }
+        }
 
-		logger.infov("Starting XNIO3 Server on port {0} ...", port);
-		// Get the Xnio instance
-		final Xnio xnio = Xnio.getInstance("nio", Xnio3Server.class.getClassLoader());
+        logger.infov("Starting XNIO3 Server on port {0} ...", port);
+        // Get the Xnio instance
+        final Xnio xnio = Xnio.getInstance("nio", Xnio3Server.class.getClassLoader());
 
-		int cores = Runtime.getRuntime().availableProcessors();
-		logger.infof("Number of cores detected %s", cores);
+        int cores = Runtime.getRuntime().availableProcessors();
+        logger.infof("Number of cores detected %s", cores);
 
-		// Create the OptionMap for the worker
-		OptionMap optionMap = OptionMap.create(Options.WORKER_WRITE_THREADS, cores,
-				Options.WORKER_READ_THREADS, cores);
-		// Create the worker
-		final XnioWorker worker = xnio.createWorker(optionMap);
-		final SocketAddress address = new InetSocketAddress(port);
-		final ChannelListener<? super AcceptingChannel<ConnectedStreamChannel>> acceptListener = ChannelListeners
-				.openListenerAdapter(new AcceptChannelListenerImpl());
-		// configure the number of worker task max threads
-		worker.setOption(Options.WORKER_TASK_MAX_THREADS, 400);
+        // Create the OptionMap for the worker
+        OptionMap optionMap = OptionMap.create(Options.WORKER_WRITE_THREADS, cores,
+                Options.WORKER_READ_THREADS, cores);
+        // Create the worker
+        final XnioWorker worker = xnio.createWorker(optionMap);
+        final SocketAddress address = new InetSocketAddress(port);
+        final ChannelListener<? super AcceptingChannel<ConnectedStreamChannel>> acceptListener = ChannelListeners.openListenerAdapter(new AcceptChannelListenerImpl());
+        // configure the number of worker task max threads
+        worker.setOption(Options.WORKER_TASK_MAX_THREADS, 500);
 
-		final AcceptingChannel<? extends ConnectedStreamChannel> server = worker
-				.createStreamServer(address, acceptListener,
-						OptionMap.create(Options.REUSE_ADDRESSES, Boolean.TRUE));
-		server.resumeAccepts();
-	}
+        final AcceptingChannel<? extends ConnectedStreamChannel> server = worker.createStreamServer(address, acceptListener,
+                OptionMap.create(Options.REUSE_ADDRESSES, Boolean.TRUE));
+        server.resumeAccepts();
+    }
 
-	/**
-	 * Generate a random and unique session ID.
-	 * 
-	 * @return a random and unique session ID
-	 */
-	public static String generateSessionId() {
-		UUID uuid = UUID.randomUUID();
-		return uuid.toString();
-	}
+    /**
+     * Generate a random and unique session ID.
+     * 
+     * @return a random and unique session ID
+     */
+    public static String generateSessionId() {
+        UUID uuid = UUID.randomUUID();
+        return uuid.toString();
+    }
 
-	/**
-	 * 
-	 * @param channel
-	 * @param sessionId
-	 * @throws IOException
-	 */
-	protected static void initSession(StreamChannel channel, String sessionId) throws IOException {
-		ByteBuffer buffer = ByteBuffer.allocate(512);
-		buffer.clear();
-		int nBytes = channel.read(buffer);
-		buffer.flip();
-		byte bytes[] = new byte[nBytes];
-		buffer.get(bytes);
-		System.out.println("[" + sessionId + "] " + new String(bytes).trim());
-		String response = "jSessionId: " + sessionId + XnioUtils.CRLF;
-		// write initialization response to client
-		buffer.clear();
-		buffer.put(response.getBytes());
-		buffer.flip();
-		channel.write(buffer);
-	}
+    /**
+     * 
+     * @param channel
+     * @param sessionId
+     * @throws IOException
+     */
+    protected static void initSession(StreamChannel channel, String sessionId) throws IOException {
+        ByteBuffer buffer = ByteBuffer.allocate(512);
+        buffer.clear();
+        int nBytes = channel.read(buffer);
+        buffer.flip();
+        byte bytes[] = new byte[nBytes];
+        buffer.get(bytes);
+        System.out.println("[" + sessionId + "] " + new String(bytes).trim());
+        String response = "jSessionId: " + sessionId + XnioUtils.CRLF;
+        // write initialization response to client
+        buffer.clear();
+        buffer.put(response.getBytes());
+        buffer.flip();
+        channel.write(buffer);
+    }
 
-	/**
-	 * {@code AcceptChannelListenerImpl}
-	 * 
-	 * Created on Nov 10, 2011 at 4:03:10 PM
-	 * 
-	 * @author <a href="mailto:nbenothm@redhat.com">Nabil Benothman</a>
-	 */
-	protected static class AcceptChannelListenerImpl implements ChannelListener<Channel> {
+    /**
+     * {@code AcceptChannelListenerImpl}
+     * 
+     * Created on Nov 10, 2011 at 4:03:10 PM
+     * 
+     * @author <a href="mailto:nbenothm@redhat.com">Nabil Benothman</a>
+     */
+    protected static class AcceptChannelListenerImpl implements ChannelListener<Channel> {
 
-		/*
-		 * (non-Javadoc)
-		 * 
-		 * @see org.xnio.ChannelListener#handleEvent(java.nio.channels.Channel)
-		 */
-		public void handleEvent(Channel channel) {
-			logger.info("New connection accepted");
-			final StreamChannel streamChannel = (StreamChannel) channel;
-			String sessionId = generateSessionId();
-			try {
-				initSession(streamChannel, sessionId);
-			} catch (IOException e) {
-				e.printStackTrace();
-				return;
-			}
+        /*
+         * (non-Javadoc)
+         * 
+         * @see org.xnio.ChannelListener#handleEvent(java.nio.channels.Channel)
+         */
+        public void handleEvent(Channel channel) {
+            logger.info("New connection accepted");
+            final StreamChannel streamChannel = (StreamChannel) channel;
+            String sessionId = generateSessionId();
+            try {
+                initSession(streamChannel, sessionId);
+            } catch (IOException e) {
+                e.printStackTrace();
+                return;
+            }
 
-			ReadChannelListener readListener = new ReadChannelListener();
-			readListener.setSessionId(sessionId);
-			CloseChannelListener closeListener = new CloseChannelListener();
-			closeListener.sessionId = sessionId;
-			WriteChannelListener writeListener = new WriteChannelListener();
-			writeListener.setSessionId(sessionId);
+            ReadChannelListener readListener = new ReadChannelListener();
+            readListener.setSessionId(sessionId);
+            CloseChannelListener closeListener = new CloseChannelListener();
+            closeListener.sessionId = sessionId;
+            WriteChannelListener writeListener = new WriteChannelListener();
+            writeListener.setSessionId(sessionId);
 
-			streamChannel.getReadSetter().set(readListener);
-			streamChannel.getWriteSetter().set(writeListener);
-			streamChannel.getCloseSetter().set(closeListener);
-			streamChannel.resumeReads();
-			streamChannel.resumeWrites();
-		}
-	}
+            streamChannel.getReadSetter().set(readListener);
+            streamChannel.getWriteSetter().set(writeListener);
+            streamChannel.getCloseSetter().set(closeListener);
+            streamChannel.resumeReads();
+            streamChannel.resumeWrites();
+        }
+    }
 
-	/**
-	 * {@code CloseChannelListener}
-	 * 
-	 * Created on Nov 11, 2011 at 1:58:40 PM
-	 * 
-	 * @author <a href="mailto:nbenothm@redhat.com">Nabil Benothman</a>
-	 */
-	protected static class CloseChannelListener implements ChannelListener<StreamChannel> {
+    /**
+     * {@code CloseChannelListener}
+     * 
+     * Created on Nov 11, 2011 at 1:58:40 PM
+     * 
+     * @author <a href="mailto:nbenothm@redhat.com">Nabil Benothman</a>
+     */
+    protected static class CloseChannelListener implements ChannelListener<StreamChannel> {
 
-		private String sessionId;
+        private String sessionId;
 
-		/*
-		 * (non-Javadoc)
-		 * 
-		 * @see org.xnio.ChannelListener#handleEvent(java.nio.channels.Channel)
-		 */
-		public void handleEvent(StreamChannel channel) {
-			logger.info("Closing remote connection for session: [" + sessionId + "]");
-		}
-	}
-
+        /*
+         * (non-Javadoc)
+         * 
+         * @see org.xnio.ChannelListener#handleEvent(java.nio.channels.Channel)
+         */
+        public void handleEvent(StreamChannel channel) {
+            logger.info("Closing remote connection for session: [" + sessionId + "]");
+        }
+    }
 }

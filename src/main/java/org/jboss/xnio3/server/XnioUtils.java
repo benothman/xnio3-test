@@ -24,7 +24,7 @@ package org.jboss.xnio3.server;
 import java.nio.ByteBuffer;
 
 /**
- * {@code Utils}
+ * {@code XnioUtils}
  * 
  * Created on Nov 22, 2011 at 5:01:23 PM
  * 
@@ -46,14 +46,14 @@ public final class XnioUtils {
 	public static final int SERVER_PORT = 8080;
 
 	/**
-	 * Create a new instance of {@code Utils}
+	 * Create a new instance of {@code XnioUtils}
 	 */
 	private XnioUtils() {
 		super();
 	}
 
 	/**
-	 * Flip all the write byte buffers
+	 * Flip all byte buffers
 	 * 
 	 * @param buffers
 	 */
@@ -61,5 +61,14 @@ public final class XnioUtils {
 		for (ByteBuffer bb : buffers) {
 			bb.flip();
 		}
+	}
+
+	/**
+	 * Flip the byte buffer
+	 * 
+	 * @param buffer
+	 */
+	public static void flip(ByteBuffer buffer) {
+		buffer.flip();
 	}
 }
