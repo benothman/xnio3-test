@@ -31,6 +31,7 @@ import java.util.UUID;
 import org.jboss.logging.Logger;
 import org.xnio.ChannelListener;
 import org.xnio.ChannelListeners;
+import org.xnio.Option;
 import org.xnio.OptionMap;
 import org.xnio.Options;
 import org.xnio.Xnio;
@@ -137,6 +138,8 @@ public class Xnio3Server {
             final StreamChannel streamChannel = (StreamChannel) channel;
             String sessionId = generateSessionId();
             try {
+            	// Fix the size of the send buffer to 8KB
+                streamChannel.setOption(Options.SEND_BUFFER, 8 * 1024);
                 initSession(streamChannel, sessionId);
             } catch (IOException e) {
                 e.printStackTrace();
