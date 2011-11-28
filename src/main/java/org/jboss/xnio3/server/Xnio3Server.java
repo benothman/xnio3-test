@@ -154,8 +154,8 @@ public class Xnio3Server {
 				streamChannel.getReadSetter().set(readListener);
 				streamChannel.getWriteSetter().set(writeListener);
 				streamChannel.getCloseSetter().set(closeListener);
-				streamChannel.awaitReadable();
-				streamChannel.awaitWritable();
+				streamChannel.resumeReads();
+				streamChannel.resumeWrites();
 			} catch (IOException e) {
 				e.printStackTrace();
 				return;
