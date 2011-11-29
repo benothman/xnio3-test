@@ -116,6 +116,7 @@ public class Xnio3Server {
 		buffer.get(bytes);
 		System.out.println("[" + sessionId + "] " + new String(bytes).trim());
 		String response = "jSessionId: " + sessionId + XnioUtils.CRLF;
+		System.out.println("Send response to client -> " + response);
 		// write initialization response to client
 		buffer.clear();
 		buffer.put(response.getBytes());
