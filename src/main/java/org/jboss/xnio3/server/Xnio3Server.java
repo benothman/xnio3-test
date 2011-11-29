@@ -107,7 +107,6 @@ public class Xnio3Server {
 	 * @throws IOException
 	 */
 	protected static void initSession(StreamChannel channel, String sessionId) throws IOException {
-		System.out.println("Initialize the session with client");
 		ByteBuffer buffer = ByteBuffer.allocate(512);
 		buffer.clear();
 		int nBytes = channel.read(buffer);
@@ -116,7 +115,6 @@ public class Xnio3Server {
 		buffer.get(bytes);
 		System.out.println("[" + sessionId + "] " + new String(bytes).trim());
 		String response = "jSessionId: " + sessionId + XnioUtils.CRLF;
-		System.out.println("Send response to client -> " + response);
 		// write initialization response to client
 		buffer.clear();
 		buffer.put(response.getBytes());
@@ -139,7 +137,7 @@ public class Xnio3Server {
 		 * @see org.xnio.ChannelListener#handleEvent(java.nio.channels.Channel)
 		 */
 		public void handleEvent(Channel channel) {
-			logger.info("New connection accepted -> " + (++counter));
+			logger.info("New connection accepted -> total number of connections : " + (++counter));
 			final StreamChannel streamChannel = (StreamChannel) channel;
 			String sessionId = generateSessionId();
 			try {
