@@ -109,16 +109,19 @@ public class ReadChannelListener implements ChannelListener<StreamChannel> {
 			throws Exception {
 
 		// Flip all buffers
-		XnioUtils.flipAll(buffers);
+		// XnioUtils.flipAll(buffers);
 
-		// WriteChannelListener writeListener = (WriteChannelListener) ((ChannelListener.SimpleSetter) channel
-		//		.getWriteSetter()).get();
+		// WriteChannelListener writeListener = (WriteChannelListener)
+		// ((ChannelListener.SimpleSetter) channel
+		// .getWriteSetter()).get();
 		// writeListener.reset();
-		channel.awaitWritable();
-		long written = channel.write(buffers);
+		
+		for (ByteBuffer bb : buffers) {
+			write(channel, bb);
+		}
 		// Initialize the listener fields
 		// writeListener.init(buffers, total, written);
-		//channel.resumeWrites();
+		// channel.resumeWrites();
 	}
 
 	/**
@@ -132,7 +135,6 @@ public class ReadChannelListener implements ChannelListener<StreamChannel> {
 		// Wait until the channel becomes writable again
 		channel.awaitWritable();
 		channel.write(byteBuffer);
-		byteBuffer.clear();
 	}
 
 	/**
