@@ -77,7 +77,7 @@ public class ReadChannelListener implements ChannelListener<StreamChannel> {
 			}
 		} catch (Exception e) {
 			logger.error("Exception: " + e.getMessage(), e);
-			e.printStackTrace();
+			// e.printStackTrace();
 		}
 	}
 
@@ -98,7 +98,7 @@ public class ReadChannelListener implements ChannelListener<StreamChannel> {
 			// write(channel, writeBuffer);
 		} catch (Exception exp) {
 			logger.error("Exception: " + exp.getMessage(), exp);
-			exp.printStackTrace();
+			// exp.printStackTrace();
 		}
 	}
 
