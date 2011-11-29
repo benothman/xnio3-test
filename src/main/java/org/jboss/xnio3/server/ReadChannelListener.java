@@ -89,13 +89,13 @@ public class ReadChannelListener implements ChannelListener<StreamChannel> {
 	void writeResponse(StreamChannel channel) throws Exception {
 		try {
 			if (this.writeBuffers == null) {
-				// initWriteBuffers();
-				initWriteBuffer();
+				initWriteBuffers();
+				// initWriteBuffer();
 			}
 
 			// Write the file content to the channel
-			// write(channel, writeBuffers, fileLength);
-			write(channel, writeBuffer);
+			write(channel, writeBuffers, fileLength);
+			// write(channel, writeBuffer);
 		} catch (Exception exp) {
 			logger.error("Exception: " + exp.getMessage(), exp);
 			exp.printStackTrace();
@@ -111,18 +111,23 @@ public class ReadChannelListener implements ChannelListener<StreamChannel> {
 	protected void write(final StreamChannel channel, final ByteBuffer[] buffers, long total)
 			throws Exception {
 
-		// Flip all buffers
-		XnioUtils.flipAll(buffers);
+		/*
+		 * // Flip all buffers XnioUtils.flipAll(buffers); WriteChannelListener
+		 * writeListener = (WriteChannelListener)
+		 * ((ChannelListener.SimpleSetter) channel .getWriteSetter()).get();
+		 * writeListener.reset(); long written = channel.write(buffers); //
+		 * Initialize the listener fields writeListener.init(buffers, total,
+		 * written); channel.resumeWrites();
+		 */
 
-		WriteChannelListener writeListener = (WriteChannelListener) ((ChannelListener.SimpleSetter) channel
-				.getWriteSetter()).get();
-		writeListener.reset();
+		int offset = 0, length;
+		long written = 0;
+		do {
+			channel.awaitWritable();
+			offset = (int) (written / XnioUtils.WRITE_BUFFER_SIZE);
+			written += channel.write(buffers, offset, buffers.length - offset);
+		} while (written < total);
 
-		long written = channel.write(buffers);
-
-		// Initialize the listener fields
-		writeListener.init(buffers, total, written);
-		channel.resumeWrites();
 	}
 
 	/**
