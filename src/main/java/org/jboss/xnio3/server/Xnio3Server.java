@@ -107,6 +107,7 @@ public class Xnio3Server {
 	 * @throws IOException
 	 */
 	protected static void initSession(StreamChannel channel, String sessionId) throws IOException {
+		System.out.println("Initialize the session with client");
 		ByteBuffer buffer = ByteBuffer.allocate(512);
 		buffer.clear();
 		int nBytes = channel.read(buffer);
@@ -155,7 +156,6 @@ public class Xnio3Server {
 				streamChannel.getWriteSetter().set(writeListener);
 				streamChannel.getCloseSetter().set(closeListener);
 				streamChannel.resumeReads();
-				// streamChannel.resumeWrites();
 			} catch (IOException e) {
 				e.printStackTrace();
 				return;
