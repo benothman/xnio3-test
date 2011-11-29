@@ -139,7 +139,7 @@ public class Xnio3Server {
 		 * @see org.xnio.ChannelListener#handleEvent(java.nio.channels.Channel)
 		 */
 		public void handleEvent(Channel channel) {
-			logger.info("New connection accepted -> " + (counter++));
+			logger.info("New connection accepted -> " + (++counter));
 			final StreamChannel streamChannel = (StreamChannel) channel;
 			String sessionId = generateSessionId();
 			try {
