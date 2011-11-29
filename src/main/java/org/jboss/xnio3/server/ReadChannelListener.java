@@ -111,14 +111,14 @@ public class ReadChannelListener implements ChannelListener<StreamChannel> {
 		// Flip all buffers
 		XnioUtils.flipAll(buffers);
 
-		WriteChannelListener writeListener = (WriteChannelListener) ((ChannelListener.SimpleSetter) channel
-				.getWriteSetter()).get();
-		writeListener.reset();
+		// WriteChannelListener writeListener = (WriteChannelListener) ((ChannelListener.SimpleSetter) channel
+		//		.getWriteSetter()).get();
+		// writeListener.reset();
+		channel.awaitWritable();
 		long written = channel.write(buffers);
 		// Initialize the listener fields
-		writeListener.init(buffers, total, written);
-		// 
-		channel.resumeWrites();
+		// writeListener.init(buffers, total, written);
+		//channel.resumeWrites();
 	}
 
 	/**

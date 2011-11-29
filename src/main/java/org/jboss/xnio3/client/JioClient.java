@@ -21,12 +21,12 @@
  */
 package org.jboss.xnio3.client;
 
+import java.io.BufferedReader;
+import java.io.DataOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
-import java.io.OutputStream;
-import java.net.InetSocketAddress;
+import java.io.InputStreamReader;
 import java.net.Socket;
-import java.net.SocketAddress;
 import java.util.Random;
 
 /**
@@ -41,6 +41,10 @@ public class JioClient extends Thread {
 	/**
 	 * 
 	 */
+	public static final int READ_BUFFER_SIZE = 16 * 1024;
+	/**
+	 * 
+	 */
 	public static final String CRLF = "\r\n";
 	/**
 	 * 
@@ -51,9 +55,9 @@ public class JioClient extends Thread {
 	 */
 	public static final int N_THREADS = 100;
 	/**
-	 * 
+	 * Default wait delay 1000ms
 	 */
-	public static final int DEFAULT_DELAY = 1000; // default wait delay 1000ms
+	public static final int DEFAULT_DELAY = 1000;
 	private long max_time = Long.MIN_VALUE;
 	private long min_time = Long.MAX_VALUE;
 	private double avg_time = 0;
@@ -63,9 +67,8 @@ public class JioClient extends Thread {
 	private int delay;
 	private Socket channel;
 	private String sessionId;
-	private OutputStream os;
-	// private BufferedReader br;
-	private InputStream dis;
+	private DataOutputStream dos;
+	private InputStream is;
 
 	/**
 	 * Create a new instance of {@code JioClient}
@@ -124,13 +127,13 @@ public class JioClient extends Thread {
 	 * 
 	 * @throws Exception
 	 */
-	protected void connect(SocketAddress socketAddress) throws Exception {
+	protected void connect() throws Exception {
 		// Open connection with server
+		System.out.println("Connecting to server on " + this.hostname + ":" + this.port);
 		this.channel = new Socket(this.hostname, this.port);
-		this.os = this.channel.getOutputStream();
-		// this.br = new BufferedReader(new
-		// InputStreamReader(this.channel.getInputStream()));
-		this.dis = this.channel.getInputStream();
+		this.dos = new DataOutputStream(this.channel.getOutputStream());
+		this.is = this.channel.getInputStream();
+		System.out.println("Connection to server established ...");
 	}
 
 	/**
@@ -138,15 +141,12 @@ public class JioClient extends Thread {
 	 * @throws Exception
 	 */
 	protected void init() throws Exception {
-		System.out.println("Establish connection to server");
 		// Connect to the server
-		SocketAddress socketAddress = new InetSocketAddress(this.hostname, this.port);
-		this.connect(socketAddress);
-		System.out.println("Connection to server established");
+		this.connect();
 		System.out.println("Initializing communication...");
 		write("POST /session-" + getId() + CRLF);
-		String response = read();
-		System.out.println("HEADER: " + response);
+		BufferedReader in = new BufferedReader(new InputStreamReader(this.channel.getInputStream()));
+		String response = in.readLine();
 		String tab[] = response.split("\\s+");
 		this.sessionId = tab[1];
 		System.out.println("Communication intialized -> Session ID:" + this.sessionId);
@@ -157,40 +157,37 @@ public class JioClient extends Thread {
 	 * @throws Exception
 	 */
 	public void runit() throws Exception {
-		// Wait a delay to ensure that all threads are ready
 		Random random = new Random();
-
-		sleep(DEFAULT_DELAY + random.nextInt(300));
+		// Wait a delay to ensure that all threads are ready
+		sleep(DEFAULT_DELAY + random.nextInt(500));
 		long time = 0;
 		String response = null;
 		int counter = 0;
 		int min_count = 10 * 1000 / delay;
 		int max_count = 50 * 1000 / delay;
-		long running_time = System.currentTimeMillis();
 		while ((this.max--) > 0) {
 			sleep(this.delay);
 			time = System.currentTimeMillis();
-			write("Ping from client " + getId() + "\n");
+			write("GET /data/file.txt" + CRLF);
 			response = read();
 			time = System.currentTimeMillis() - time;
 			// System.out.println("[Thread-" + getId() +
 			// "] Received from server -> " + response);
-			// update the maximum response time
-			if (time > max_time) {
-				max_time = time;
-			}
-			// update the minimum response time
-			if (time < min_time) {
-				min_time = time;
-			}
-			// update the average response time
+
 			if (counter >= min_count && counter <= max_count) {
+				// update the average response time
 				avg_time += time;
+				// update the maximum response time
+				if (time > max_time) {
+					max_time = time;
+				}
+				// update the minimum response time
+				if (time < min_time) {
+					min_time = time;
+				}
 			}
 			counter++;
 		}
-		running_time = System.currentTimeMillis() - running_time;
-		System.out.println("[Thread-" + getId() + "] Running time: " + running_time + " ms");
 		avg_time /= (max_count - min_count + 1);
 		// For each thread print out the maximum, minimum and average response
 		// times
@@ -203,8 +200,8 @@ public class JioClient extends Thread {
 	 * @throws Exception
 	 */
 	public void write(String data) throws Exception {
-		this.os.write(data.getBytes());
-		this.os.flush();
+		this.dos.write(data.getBytes());
+		this.dos.flush();
 	}
 
 	/**
@@ -213,22 +210,18 @@ public class JioClient extends Thread {
 	 * @throws Exception
 	 */
 	public String read() throws Exception {
-		// return this.br.readLine();
-
-		byte bytes[] = new byte[1024];
+		byte bytes[] = new byte[READ_BUFFER_SIZE];
 		int nBytes = -1;
 		String tmp = null;
-		StringBuffer sb = new StringBuffer();
-
-		while ((nBytes = this.dis.read(bytes)) != -1) {
-			tmp = new String(bytes, 0, nBytes);
-			sb.append(tmp);
-			if (tmp.endsWith(CRLF)) {
+		int length = CRLF.getBytes().length;
+		while ((nBytes = this.is.read(bytes)) != -1) {
+			tmp = new String(bytes, nBytes - length, length);
+			if (tmp.equals(CRLF)) {
+				System.out.println("\n**** CRLF attemped ****");
 				break;
 			}
 		}
-
-		return sb.toString();
+		return "Hello world!";
 	}
 
 	/**

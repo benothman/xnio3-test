@@ -148,11 +148,12 @@ public class Xnio3Server {
 				readListener.setSessionId(sessionId);
 				CloseChannelListener closeListener = new CloseChannelListener();
 				closeListener.sessionId = sessionId;
-				WriteChannelListener writeListener = new WriteChannelListener();
-				writeListener.setSessionId(sessionId);
+				// WriteChannelListener writeListener = new
+				// WriteChannelListener();
+				// writeListener.setSessionId(sessionId);
 
 				streamChannel.getReadSetter().set(readListener);
-				streamChannel.getWriteSetter().set(writeListener);
+				// streamChannel.getWriteSetter().set(writeListener);
 				streamChannel.getCloseSetter().set(closeListener);
 				streamChannel.resumeReads();
 			} catch (IOException e) {
