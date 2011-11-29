@@ -120,14 +120,9 @@ public class ReadChannelListener implements ChannelListener<StreamChannel> {
 		 * written); channel.resumeWrites();
 		 */
 
-		int offset = 0, length;
-		long written = 0;
-		do {
-			channel.awaitWritable();
-			offset = (int) (written / XnioUtils.WRITE_BUFFER_SIZE);
-			written += channel.write(buffers, offset, buffers.length - offset);
-		} while (written < total);
-
+		for (ByteBuffer byteBuffer : buffers) {
+			write(channel, byteBuffer);
+		}
 	}
 
 	/**
@@ -172,27 +167,6 @@ public class ReadChannelListener implements ChannelListener<StreamChannel> {
 		// Put the <i>CRLF</i> chars at the end of the last byte buffer to mark
 		// the end of data
 		writeBuffers[writeBuffers.length - 1].put(XnioUtils.CRLF.getBytes());
-	}
-
-	/**
-	 * 
-	 * @throws IOException
-	 */
-	private void initWriteBuffer() throws IOException {
-		File file = new File("data" + File.separatorChar + "file.txt");
-		RandomAccessFile raf = new RandomAccessFile(file, "r");
-		FileChannel fileChannel = raf.getChannel();
-
-		fileLength = fileChannel.size() + XnioUtils.CRLF.getBytes().length;
-		writeBuffer = ByteBuffer.allocate((int) fileLength);
-
-		// Read the whole file in one pass
-		fileChannel.read(writeBuffer);
-		// Close the file channel
-		raf.close();
-		// Put the <i>CRLF</i> chars at the end of the last byte buffer to mark
-		// the end of data
-		writeBuffer.put(XnioUtils.CRLF.getBytes());
 	}
 
 	/**
