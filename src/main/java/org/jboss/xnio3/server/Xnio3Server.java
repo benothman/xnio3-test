@@ -27,6 +27,7 @@ import java.net.SocketAddress;
 import java.nio.ByteBuffer;
 import java.nio.channels.Channel;
 import java.util.UUID;
+import java.util.concurrent.atomic.AtomicInteger;
 
 import org.jboss.logging.Logger;
 import org.xnio.ChannelListener;
@@ -50,7 +51,7 @@ import org.xnio.channels.StreamChannel;
 public class Xnio3Server {
 
 	private static final Logger logger = Logger.getLogger(Xnio3Server.class.getName());
-	static int counter = 0;
+	protected static AtomicInteger counter = new AtomicInteger();
 
 	/**
 	 * @param args
@@ -137,7 +138,9 @@ public class Xnio3Server {
 		 * @see org.xnio.ChannelListener#handleEvent(java.nio.channels.Channel)
 		 */
 		public void handleEvent(Channel channel) {
-			logger.info("New connection accepted -> total number of connections : " + (++counter));
+
+			logger.infof("New connection accepted -> total number of connections : %s",
+					counter.incrementAndGet());
 			final StreamChannel streamChannel = (StreamChannel) channel;
 			String sessionId = generateSessionId();
 			try {
@@ -180,7 +183,9 @@ public class Xnio3Server {
 		 * @see org.xnio.ChannelListener#handleEvent(java.nio.channels.Channel)
 		 */
 		public void handleEvent(StreamChannel channel) {
-			logger.info("Closing remote connection for session: [" + sessionId + "]");
+			logger.infof(
+					"Closing remote connection for session: [%s] -> number of remaining connections %s",
+					sessionId, counter.decrementAndGet());
 		}
 	}
 }
