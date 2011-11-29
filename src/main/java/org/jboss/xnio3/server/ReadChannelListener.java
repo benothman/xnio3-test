@@ -44,6 +44,7 @@ public class ReadChannelListener implements ChannelListener<StreamChannel> {
 	private String sessionId;
 	private ByteBuffer readBuffer;
 	private ByteBuffer writeBuffers[];
+	private ByteBuffer writeBuffer;
 	private long fileLength;
 
 	/**
@@ -88,11 +89,13 @@ public class ReadChannelListener implements ChannelListener<StreamChannel> {
 	void writeResponse(StreamChannel channel) throws Exception {
 		try {
 			if (this.writeBuffers == null) {
-				initWriteBuffers();
+				// initWriteBuffers();
+				initWriteBuffer();
 			}
 
 			// Write the file content to the channel
-			write(channel, writeBuffers, fileLength);
+			// write(channel, writeBuffers, fileLength);
+			write(channel, writeBuffer);
 		} catch (Exception exp) {
 			logger.error("Exception: " + exp.getMessage(), exp);
 			exp.printStackTrace();
@@ -109,19 +112,17 @@ public class ReadChannelListener implements ChannelListener<StreamChannel> {
 			throws Exception {
 
 		// Flip all buffers
-		// XnioUtils.flipAll(buffers);
+		XnioUtils.flipAll(buffers);
 
-		// WriteChannelListener writeListener = (WriteChannelListener)
-		// ((ChannelListener.SimpleSetter) channel
-		// .getWriteSetter()).get();
-		// writeListener.reset();
-		
-		for (ByteBuffer bb : buffers) {
-			write(channel, bb);
-		}
+		WriteChannelListener writeListener = (WriteChannelListener) ((ChannelListener.SimpleSetter) channel
+				.getWriteSetter()).get();
+		writeListener.reset();
+
+		long written = channel.write(buffers);
+
 		// Initialize the listener fields
-		// writeListener.init(buffers, total, written);
-		// channel.resumeWrites();
+		writeListener.init(buffers, total, written);
+		channel.resumeWrites();
 	}
 
 	/**
@@ -166,6 +167,27 @@ public class ReadChannelListener implements ChannelListener<StreamChannel> {
 		// Put the <i>CRLF</i> chars at the end of the last byte buffer to mark
 		// the end of data
 		writeBuffers[writeBuffers.length - 1].put(XnioUtils.CRLF.getBytes());
+	}
+
+	/**
+	 * 
+	 * @throws IOException
+	 */
+	private void initWriteBuffer() throws IOException {
+		File file = new File("data" + File.separatorChar + "file.txt");
+		RandomAccessFile raf = new RandomAccessFile(file, "r");
+		FileChannel fileChannel = raf.getChannel();
+
+		fileLength = fileChannel.size() + XnioUtils.CRLF.getBytes().length;
+		writeBuffer = ByteBuffer.allocate((int) fileLength);
+
+		// Read the whole file in one pass
+		fileChannel.read(writeBuffer);
+		// Close the file channel
+		raf.close();
+		// Put the <i>CRLF</i> chars at the end of the last byte buffer to mark
+		// the end of data
+		writeBuffer.put(XnioUtils.CRLF.getBytes());
 	}
 
 	/**
