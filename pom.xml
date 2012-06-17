@@ -30,12 +30,12 @@
 		<dependency>
 			<groupId>org.jboss.xnio</groupId>
 			<artifactId>xnio-api</artifactId>
-			<version>3.0.0.CR4</version>
+			<version>3.0.0.GA</version>
 		</dependency>
 		<dependency>
 			<groupId>org.jboss.xnio</groupId>
 			<artifactId>xnio-nio</artifactId>
-			<version>3.0.0.CR4</version>
+			<version>3.0.0.GA</version>
 		</dependency>
 		<dependency>
 			<groupId>junit</groupId>
